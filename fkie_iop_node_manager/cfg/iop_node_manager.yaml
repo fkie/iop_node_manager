@@ -1,0 +1,56 @@
+global:
+  loglevel: info  # Possible values: debug, info, warning, error, critical. (Default: info)
+  version: 1.0.0
+  file: ~/.config/iop.fkie/iop_node_manager.yaml
+
+priority:
+  override: false  # Override priority for messages defined in config list.
+  map: {}  # a dictionary of message id as HEX and priority 0: low, 1 standard, 2: hight, 3: critical
+  # e.g.:
+  #  '0x000D': 3,  # RequestControl: critical
+  #  '0x000F': 3,  # ConfirmControl: critical
+  #  '0x4403': 1,  # ReportLocalPose: high
+  #  '0xD742': 0   # ReportCostMap2D: low
+
+statistics:
+  path: ~/.iop/statistics  # Directory where to save statistics
+  enable: false  # Enable statistics of routed messages. (Default: False)
+
+addrbook:
+  udp: {}  # dictionary entries: {IP:PORT : single or list Jaus ID}. Jaus ID can be unique or contain wildcards (subsystem: 65535, node or component: 255).
+  tcp: {}  # dictionary entries: {IP:PORT : single or list Jaus ID}. Jaus ID can be unique or contain wildcards (subsystem: 65535, node or component: 255).
+  # e.g.:
+  #  128.7.92.114:3794:
+  #   - 1.1.15
+  #   - 1.1.13
+  # or:
+  #  128.7.92.114:3794: 1.255.255
+
+transport:
+  udp:
+    group: 239.255.0.1  # Broadcasts are restricted to a multicast IP address. (Default: 239.255.0.1).
+    interface: ''  # By default it binds to all network interfaces. You can bind it to specific one by specifying the address like 192.168.101.10
+    use_mcast: true  # If disabled, only unicast communication will be used. You need to specify the address book!
+    ttl: 16  # Time to leave (Default: 16).
+    queue_length: 100  # Maximal message count for each priority in the send queue.
+    port: 3794  # By default, uses the port reserved for JAUS as assigned by the IANA for all UDP traffic. Changing the UDP port assignment is not recommended. (Default: 3794).
+
+  local:
+    nm_path: JuniorRTE  # Contact socket name to the node manager.
+    queue_length: 100  # Maximal message count for each priority in the send queue.
+    root: /tmp  # The components communicate to the node manager through file sockets. For each component a new socket with it`s id will be created in this path.
+
+  loopback_debug:
+    enable: false  # Enable to mirror messages sent on its local socket to a UDP port. (Default: False)
+    group: 239.255.0.100  # If `use_mcast` is True, the messages are broadcasted to a multicast IP address. (Default: 239.255.0.100).
+    queue_length: 100  # Maximal message count for each priority in the send queue.
+    use_mcast: false  # If disabled, unicast address is used in other case the message will be broadcasted to a multicast IP. (Default: False)
+    address: 127.0.0.1  # IP that will show in Wireshark, used if `use_mcast` is False.
+    interface: ''  # By default it binds to all network interfaces. You can bind it to specific one by specifying the address like 192.168.101.10. Only if use_mcast is set to `True`.
+    port: 55555  # Destination port (Default: 55555).
+
+  tcp:
+    enable: false  # Enable TCP communication. (Default: False)
+    port: 3794  # By default, uses the port reserved for JAUS as assigned by the IANA for all UDP traffic. Changing the UDP port assignment is not recommended. (Default: 3794).
+    interface: ''  # By default it binds to all network interfaces. You can bind it to specific one by specifying the address like 192.168.101.10
+    queue_length: 100  # Maximal message count for each priority in the send queue.
