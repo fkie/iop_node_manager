@@ -1,5 +1,6 @@
 *.bag
 *.bak
+build/
 *.egg-info/
 *.o
 *.orig

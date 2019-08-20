@@ -1,15 +1,12 @@
-IOP Node Manager
-================
+# IOP Node Manager
 
-Summary
--------
+## Summary
 
 The communication between the IOP components occurs via a Node Manager. The Node Manager performs like a router, detects local and remote components and routes the messages to the right destination. In an IOP system one Node Manager should run on each host.
 
 This Node Manager is written in Python and can be used as ROS package or as standalone component as well. It is a part of the [ROS/IOP Bridge](ros_iop_bridge).
 
-Design
-------
+## Design
 
 This version of Node Manager is compatible to the `JuniorRTE` of the [JrMiddleware](jrmiddleware) and can be used as an alternative.
 
@@ -23,12 +20,50 @@ The default configuration is located in `~/.config/iop.fkie/iop_node_manager.yam
 
 The Node Manager provides also an interface to change logging and statistics at runtime. On enbaled statistics all handled messages are written to a file (by default `~/.iop/statistics/last.msgs`). There are also scripts to parse and analyse the statistics at runtime. They show current load or connection state of components.
 
-Notice
-------
+## Install
+
+Clone this repository to your preffered destination.
+
+- If you use it with ROS put this repository into ROS workspace and call  
+`catkin build`
+
+- **Without** ROS support you can use setup.py to install the code:
+
+  ```console
+  cd iop_node_manager/fkie_iop_node_manager
+  cd python setup.py install --user
+  ```
+
+  The executables are now located in `~/.local/bin`.
+
+## Run
+
+Use **rosiopnodemanager.py** to launch Node Manager as a ROS-Node:
+
+```console
+rosrun fkie_iop_node_manager rosiopnodemanager.py
+```
+
+Or you use **iopnodemanager.py** to start Node Manager as standalone script:
+
+```console
+~/.local/bin/iopnodemanager.py
+```
+
+### `iopparam.py`
+
+Using this script you can change parameter during the runtime, e.g. change log level or enable/disable statistics output.
+
+### `iopeval.py`
+
+Analyse the output located in `~/.iop/statistics/last.msgs` and create statistics specified by parameter.
+
+> Statistics output in Node Manager should be enabled!
+
+## Notice
 
 Currently communication over TCP is experimental and Serial is under development.
 
-
 [jrmiddleware]: https://github.com/jaustoolset/jrmiddleware
-[yaml]: https://yaml.org/
+[yaml]: https://yaml.org
 [ros_iop_bridge]: https://github.com/fkie/iop_core
