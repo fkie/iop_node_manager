@@ -33,7 +33,7 @@ class Config:
     RECV_BUFFER = 5000  # 4094 should be also enough if MTU_Size = "4079"
     RECV_TIMEOUT = 1
 
-    def __init__(self, filename='', version=''):
+    def __init__(self, filename='', version='', params={}):
         self._stop = False
         self.logger = logging.getLogger('config')
         self._mutex = threading.RLock()
@@ -48,6 +48,7 @@ class Config:
         self._param_callbacks = {}
         self._cfg = None
         self.reload()
+        self.apply(params, save=False)
         self.msg_ids = {}  # (int)id: (str)Name
         self._read_msg_ids()
         self._cfgif = None
@@ -309,7 +310,7 @@ class Config:
         '''
         return ruamel.yaml.dump(self._cfg)
 
-    def apply(self, data):
+    def apply(self, data, save=True):
         '''
         Applies data (string representation of YAML).
         After new data are set the configuration will be saved to file.
@@ -318,23 +319,31 @@ class Config:
         :param str data: YAML as string representation.
         '''
         with self._mutex:
-            self._cfg = self._apply_recursive(ruamel.yaml.load(data, Loader=ruamel.yaml.Loader), self._cfg)
+            data_dict = data
+            if type(data) != dict:
+                data_dict = ruamel.yaml.load(data, Loader=ruamel.yaml.Loader)
+            self._cfg = self._apply_recursive(data_dict, self._cfg)
             do_reset = self.param('global/reset', False)
             if do_reset:
                 self.logger.info("Reset configuration requested!")
                 self._cfg = self.default()
             else:
                 self.logger.debug("new configuration applied, save now.")
-            self.save()
+            if save:
+                self.save()
             self._notify_reload_listener()
 
     def _apply_recursive(self, new_data, curr_value):
         new_cfg = dict()
+        if not curr_value:
+            return new_data
         for key, value in curr_value.items():
             try:
                 if isinstance(value, dict):
-                    if self._is_writable(value):
+                    if self._is_writable(value) and key in new_data:
                         new_cfg[key] = self._apply_recursive(new_data[key], value)
+                    else:
+                        new_cfg[key] = value
                 elif key not in [':hint', ':default', ':ro', ':min', ':max', ':alt']:
                     if isinstance(new_data, dict):
                         new_cfg[key] = new_data[key]
@@ -344,7 +353,7 @@ class Config:
                     new_cfg[key] = value
             except Exception:
                 import traceback
-                self.logger.warning("_apply_recursive error:", traceback.format_exc(), "use old value:", value)
+                self.logger.warning("_apply_recursive error: %s, use old value: %s" % (traceback.format_exc(), str(value)))
                 new_cfg[key] = value
         return new_cfg
 

@@ -1,0 +1,10 @@
+<launch>
+  <node name="iop_node_manager" pkg="fkie_iop_node_manager" type="rosiopnodemanager.py">
+    <rosparam subst_value="true">
+        global:
+            loglevel: debug
+        loopback_debug:
+            enable: true
+    </rosparam>
+  </node>
+</launch>

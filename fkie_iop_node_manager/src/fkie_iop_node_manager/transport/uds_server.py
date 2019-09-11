@@ -147,7 +147,7 @@ class UDSServer(object):
                         if not ok:
                             failed.append(msg.dst_id)
         if not found and self._local_sockets:
-            print("NO UDS destination found for:", msg.dst_id, msg.seqnr)
+            self.logger.debug("No UDS destination found for: %d, seqnr: %d" % (msg.dst_id, msg.seqnr))
             not_found.append(msg.dst_id)
         return failed, not_found
 

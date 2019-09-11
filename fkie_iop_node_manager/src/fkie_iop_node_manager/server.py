@@ -36,9 +36,9 @@ import logging
 
 class Server():
 
-    def __init__(self, cfg_file, version=''):
+    def __init__(self, cfg_file, version='', params={}):
         self.logger = logging.getLogger('server')
-        self.cfg = Config(cfg_file, version)
+        self.cfg = Config(cfg_file, version, params)
         self.cfg.init_cfgif()
         self._stop = False
         default_port = self.cfg.param('transport/udp/port', 3794)
@@ -52,6 +52,7 @@ class Server():
         self._lock = threading.RLock()
 
     def start(self, block=True):
+        self._callback_change_loglevel('global/loglevel', self.cfg.param('global/loglevel', 'info'))
         self.cfg.add_param_listener('global/loglevel', self._callback_change_loglevel)
         self._local_mngr = UDSServer(self, self.cfg, self.addrbook, self.statistics)
         self._on_discover = {}

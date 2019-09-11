@@ -65,7 +65,7 @@ def init_arg_parser():
     return parser
 
 
-def start(name, block=True, argv=None):
+def start(name, block=True, argv=None, params={}):
     '''
     Start the IOP NodeManager
 
@@ -84,7 +84,7 @@ def start(name, block=True, argv=None):
         cfg = ''
         if hasattr(parsed_args, "config"):
             cfg = parsed_args.config
-        server = Server(cfg, __version__)
+        server = Server(cfg, __version__, params=params)
         save_config = False
         if hasattr(parsed_args, "save_config"):
             save_config = parsed_args.save_config
@@ -93,7 +93,8 @@ def start(name, block=True, argv=None):
             server.cfg.save(reset=True, save_msg_ids=True)
         server.start(block)
     except Exception as err:
-        print("Error while start node manager: %s" % (err), file=sys.stderr)
+        import traceback
+        print("Error while start node manager: %s" % (traceback.format_exc()), file=sys.stderr)
     if block:
         shutdown()
 
