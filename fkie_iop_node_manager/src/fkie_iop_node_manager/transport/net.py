@@ -33,6 +33,11 @@ except Exception:
     _USE_NETIFACES = False
 
 
+def array_generator(count):
+    for _idx in range(count):
+        yield 0
+
+
 def localifs():
     '''
     Used to get a list of the up interfaces and associated IP addresses
@@ -67,7 +72,7 @@ def localifs():
         else:
             raise OSError("Unknown architecture: %s" % arch)
         sockfd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        names = array.array('B', '\0' * MAXBYTES)
+        names = array.array('B', array_generator(MAXBYTES))
         outbytes = struct.unpack('iL', fcntl.ioctl(sockfd.fileno(),
                                                    SIOCGIFCONF,
                                                    struct.pack('iL', MAXBYTES, names.buffer_info()[0])

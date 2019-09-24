@@ -20,10 +20,12 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
+import errno
 import logging
 import os
 import socket
 import traceback
+import time
 
 from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.message_parser import MessageParser
@@ -79,13 +81,23 @@ class UDSSocket(socket.socket):
         '''
         This method handles the received messages.
         '''
-        try:
-            data = self.recv(self._recv_buffer)
-            if data:
-                return self._parser.unpack(data)
-        except socket.error:
-            if not self._closed:
-                self.logger.warning("Reported socket error: %s" % traceback.format_exc())
+        running = True
+        while not self._closed and running:
+            try:
+                data = self.recv(self._recv_buffer)
+                if data:
+                    return self._parser.unpack(data)
+                else:
+                    running = False
+            except socket.error as err:
+                err = err.args[0]
+                if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                    #time.sleep(0.001)
+                    continue
+                else:
+                    running = False
+                    if not self._closed:
+                        self.logger.warning("Reported socket error: %s" % traceback.format_exc())
         return []
 
     def send_msg(self, msg):
@@ -93,9 +105,7 @@ class UDSSocket(socket.socket):
         This method sends the messages in the send queue.
         '''
         try:
-            # self.logger.info("  send uds %d" % (msg.seqnr))
             val = self.send(msg.bytes())
             return val == msg.raw_size
         except Exception as e:
-            self.logger.warning("Error while send message[len: %d]: %s" % (len(msg.bytes()), e))
-            self.logger.info("        FAIL: seqnr: %d, len: %d" % (msg.seqnr, len(msg.bytes())))
+            self.logger.warning("Error while send message [len: %d]: %s" % (len(msg.bytes()), e))

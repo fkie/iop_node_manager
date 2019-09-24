@@ -54,11 +54,25 @@ Or you use **iopnodemanager.py** to start Node Manager as standalone script:
 
 Using this script you can change parameter during the runtime, e.g. change log level or enable/disable statistics output.
 
+```console
+rosrun fkie_iop_node_manager iopparam.py --loglevel debug
+```
+
+or
+
+```console
+rosrun fkie_iop_node_manager iopparam.py --statistic true
+```
+
 ### `iopeval.py`
 
 Analyse the output located in `~/.iop/statistics/last.msgs` and create statistics specified by parameter.
 
-> Statistics output in Node Manager should be enabled!
+```console
+rosrun fkie_iop_node_manager iopeval.py connections ~/.iop/statistics/last.msgs
+```
+
+> Statistics output in Node Manager should be enabled!  
 
 ## Notice
 

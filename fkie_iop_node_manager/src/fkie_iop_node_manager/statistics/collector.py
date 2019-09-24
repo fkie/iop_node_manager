@@ -45,7 +45,6 @@ class Collector(object):
         self.cfg = cfg
         self.logger = logging.getLogger(logger_name)
         self._stop = False
-        self._lock = threading.RLock()
         self._cv = threading.Condition()
         self._msgs_recv = []
         self._idx_current = 0
@@ -67,11 +66,9 @@ class Collector(object):
 
     def clear(self):
         self.logger.debug("Clear collector")
-        with self._lock:
+        with self._cv:
             del self._msgs_recv[:]
-        self._cv.acquire()
-        self._cv.notify()
-        self._cv.release()
+            self._cv.notify()
 
     def _stats_file_open(self):
         if self.stats_file is not None:
@@ -82,6 +79,7 @@ class Collector(object):
                 os.makedirs(self.stats_dir)
             self.stats_path = os.path.join(self.stats_dir, 'last.msgs')
             if os.path.exists(self.stats_path):
+                print("rename", self.stats_path, os.path.join(self.stats_dir, 'prev_%.0f.msgs' % time.time()))
                 os.rename(self.stats_path, os.path.join(self.stats_dir, 'prev_%.0f.msgs' % time.time()))
             self.logger.info("  write statistics to '%s'" % self.stats_path)
             self.stats_file = open(self.stats_path, 'w+')
@@ -120,31 +118,32 @@ class Collector(object):
         if self.stats_file is None:
             return
         msg.ts_recv = time.time()
-        with self._lock:
+        with self._cv:
             self._msgs_recv.append(msg)
             self._count += 1
-        self._cv.acquire()
-        self._cv.notify()
-        self._cv.release()
+            self._cv.notify()
 
     def get(self, block=True):
-        if self.size() == 0:
-            if block:
-                self._cv.acquire()
-                self._cv.wait()
-                self._cv.release()
-        with self._lock:
-            item = None
-            try:
-                item = self._msgs_recv.pop(0)
-                self._count -= 1
-            except IndexError:
-                pass
-            if item is None:
-                raise Empty()
-            self.logger.debug("get %s" % item)
-            return item
-        return None
+        try:
+            with self._cv:
+                if self.size() == 0:
+                    if block:
+                        self._cv.wait()
+                else:
+                    item = None
+                    try:
+                        item = self._msgs_recv.pop(0)
+                        self._count -= 1
+                    except IndexError:
+                        pass
+                    if item is None:
+                        raise Empty()
+                    self.logger.debug("get %s" % item)
+                    return item
+            return None
+        except Exception:
+            import traceback
+            print(traceback.format_exc())
 
     def size(self):
         return self._count
@@ -156,15 +155,16 @@ class Collector(object):
         while not self._stop:
             try:
                 msg = self.get()
-                if msg.tinfo_src is None:
-                    self.logger.warning("Collects a message without valid tinfo_src, ignore...")
-                    continue
-                try:
-                    self.stats_file.write(MsgEntry.toline(msg, self.cfg))
-                    self.stats_file.flush()
-                except Exception as err:
-                    print(traceback.format_exc())
-                    self.logger.warning("Error write message to statistics file: %s" % err)
+                if msg is not None:
+                    if msg.tinfo_src is None:
+                        self.logger.warning("Collects a message without valid tinfo_src, ignore...")
+                        continue
+                    try:
+                        self.stats_file.write(MsgEntry.toline(msg, self.cfg))
+                        self.stats_file.flush()
+                    except Exception as err:
+                        print(traceback.format_exc())
+                        self.logger.warning("Error write message to statistics file: %s" % err)
             except Empty:
                 pass
             except Exception as e:

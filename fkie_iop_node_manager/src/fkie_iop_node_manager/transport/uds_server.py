@@ -142,7 +142,7 @@ class UDSServer(object):
                 if key != msg.src_id:
                     if key.match(msg.dst_id):
                         found = True
-                        logging.debug("forward message to %s" % (key))
+                        self.logger.debug("forward message to %s" % (key))
                         ok = sock.send_msg(msg)
                         if not ok:
                             failed.append(msg.dst_id)
@@ -297,15 +297,18 @@ class UDSServer(object):
                 if msg is None:
                     continue
                 try:
-                    failed, not_found = self.send_msg(msg)
+                    failed, _not_found = self.send_msg(msg)
                     if failed:
+                        # TODO: put it into send queue back?
+                        # or retry
                         # this part is still for tests
-                        print("failed send seqnr: %d, %s" % (msg.seqnr, failed))
-                        failed, not_found = self.send_msg(msg)
-                        if failed:
-                            failed, not_found = self.send_msg(msg)
-                            if failed:
-                                print("  still failed, skip seqnr: %d, %s" % (msg.seqnr, failed))
+                        # print("failed send seqnr: %d, %s" % (msg.seqnr, failed))
+                        # failed, _not_found = self.send_msg(msg)
+                        # if failed:
+                        #     failed, _not_found = self.send_msg(msg)
+                        #     if failed:
+                        #         print("  still failed, skip seqnr: %d, %s" % (msg.seqnr, failed))
+                        pass
                 except Exception as e:
                     import traceback
                     print(traceback.format_exc())
@@ -321,7 +324,6 @@ class UDSServer(object):
         sock = None
         if dst_id not in self._local_sockets:
             try:
-                print("Create local socket connection to %s" % dst_id)
                 self.logger.debug("Create local socket connection to %s" % dst_id)
                 sock = UDSSocket('%d' % dst_id.value, root_path=self._root_path, recv_buffer=self._recv_buffer)
                 self._local_sockets[dst_id] = sock
