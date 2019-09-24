@@ -445,6 +445,7 @@ class Config:
             filename = os.path.join(os.path.dirname(self.filename), filename)
             incfg = True
         if os.path.exists(filename):
+            self.logger.info("read message ids from %s" % filename)
             with open(filename, 'r') as fp:
                 for line in fp.readlines():
                     try:
@@ -453,6 +454,7 @@ class Config:
                     except Exception:
                         print(traceback.format_exc())
         elif incfg:
+            self.logger.info("create default message id list")
             # create default list
             self._init_msgs_ids()
 
