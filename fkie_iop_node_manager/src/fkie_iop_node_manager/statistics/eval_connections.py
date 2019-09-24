@@ -35,8 +35,9 @@ class EvalConnections:
         self._stop = False
         self._input_filename = input_filename
         self.interval = interval
-        self.ts = time.time()
-        self.sender = {}
+        self.ts = 0
+        self.received_bc_nd = {}
+        self.conns = {}
 
     def stop(self):
         self._stop = True
@@ -45,26 +46,38 @@ class EvalConnections:
         reader = Reader(self._input_filename)
         entries = reader.readline()
         for entry in entries:
-            if time.time() - self.ts > self.interval:
+            if self.ts == 0:
+                self.ts = entry.ts_receive
+            if entry.ts_receive - self.ts > self.interval:
                 # print current state
                 self._print_stats()
-                self.ts = time.time()
+                self.ts = entry.ts_receive
             if entry.dst_address in ['Broadcast', 'NotForward']:
-                if entry.src_address not in self.sender:
-                    self.sender[entry.src_address] = (1, entry.raw_size)
+                if entry.src_address not in self.received_bc_nd:
+                    self.received_bc_nd[entry.src_address] = (1, entry.raw_size)
                 else:
-                    cs, bs = self.sender[entry.src_address]
-                    self.sender[entry.src_address] = (cs + 1, bs + entry.raw_size)
+                    cs, bs = self.received_bc_nd[entry.src_address]
+                    self.received_bc_nd[entry.src_address] = (cs + 1, bs + entry.raw_size)
             else:
-                if entry.src_address in self.sender:
-                    del self.sender[entry.src_address]
+                if entry.src_address in self.received_bc_nd:
+                    del self.received_bc_nd[entry.src_address]
+                key = (entry.src_id, entry.src_address, entry.dst_id, entry.dst_address)
+                if entry.src_address and entry.dst_address:
+                    if key not in self.conns:
+                        self.conns[key] = (1, entry.raw_size)
+                    else:
+                        cs, bs = self.conns[key]
+                        self.conns[key] = (cs + 1, bs + entry.raw_size)
             if self._stop:
                 break
 
     def _print_stats(self):
-        print("Broadcast or not discovered connections: %d" % len(self.sender))
-        for sender, (count, bytes_sent) in self.sender.items():
-            print("  %s -> %d %s" % (sender, count, self.sizeof_fmt(bytes_sent)))
+        print("Connections: %d" % len(self.conns))
+        for (src_addr, src_address, dst_addr, dst_address), (count, bytes_sent) in self.conns.items():
+            print("  %s (%s) -> %s (%s)\n    count packets: %d, %s" % (src_addr, src_address, dst_addr, dst_address, count, self.sizeof_fmt(bytes_sent)))
+        print("Broadcast or not discovered connections: %d" % len(self.received_bc_nd))
+        for received_bc_nd, (count, bytes_sent) in self.received_bc_nd.items():
+            print("  %s -> count packets: %d %s" % (received_bc_nd, count, self.sizeof_fmt(bytes_sent)))
 
     def sizeof_fmt(self, num, suffix='B'):
         for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
