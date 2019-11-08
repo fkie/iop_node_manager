@@ -203,10 +203,8 @@ class UDPmcSocket(socket.socket):
             val = self.sendto(msg.bytes(), (endpoint.address, endpoint.port))
             if val != msg.raw_size:
                 raise Exception("not complete send %d of %d" % (val, msg.raw_size))
-            try:
+            if endpoint.address in SEND_ERRORS:
                 del SEND_ERRORS[endpoint.address]
-            except Exception:
-                pass
         except socket.error as errobj:
             erro_msg = "Error while send to '%s': %s" % (endpoint.address, errobj)
             SEND_ERRORS[endpoint.address] = erro_msg

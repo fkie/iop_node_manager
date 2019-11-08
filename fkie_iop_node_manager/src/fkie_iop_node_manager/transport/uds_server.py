@@ -298,7 +298,10 @@ class UDSServer(object):
                     continue
                 try:
                     failed, _not_found = self.send_msg(msg)
-                    if failed:
+                    if failed and msg.tinfo_dst is not None:
+                        if msg.priority == 3:
+                            # try again for critical messages
+                            failed, _not_found = self.send_msg(msg)
                         # TODO: put it into send queue back?
                         # or retry
                         # this part is still for tests
