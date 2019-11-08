@@ -100,7 +100,7 @@ class TCPServer(socket.socket):
                     self._clients[dst].send_queued(msg)
                 except KeyError:
                     if not is_local_iface(dst[0]):
-                        tcp_client = TCPClient(dst[0], port=dst[1], queue_recv=self._router, interface=self.interface, recv_buffer=self._recv_buffer, queue_length=self._queue_length)
+                        tcp_client = TCPClient(dst[0], port=dst[1], router=self._router, interface=self.interface, recv_buffer=self._recv_buffer, queue_length=self._queue_length)
                         tcp_client.send_queued(msg)
                         self._clients[dst] = tcp_client
             else:
@@ -116,14 +116,14 @@ class TCPServer(socket.socket):
             try:
                 connection, client_address = self.accept()
                 self.logger.debug("Add new input connection from %s" % str(client_address))
-                tcp_input = TCPInput(connection, queue_recv=self._router, recv_buffer=self._recv_buffer, queue_length=self._queue_length, close_callback=self._close_callback)
+                tcp_input = TCPInput(connection, router=self._router, recv_buffer=self._recv_buffer, queue_length=self._queue_length, close_callback=self._close_callback)
                 with self._lock:
                     if client_address in self._clients:
                         self._clients[client_address].close()
                     self._clients[client_address] = tcp_input
             except OSError:
                 pass
-            except Exception as rerr:
+            except socket.error as rerr:
                 if rerr.errno != 22:
                     self.logger.debug("Error in receive loop: %s", traceback.format_exc())
 
