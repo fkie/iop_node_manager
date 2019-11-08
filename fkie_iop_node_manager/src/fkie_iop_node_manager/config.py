@@ -122,7 +122,7 @@ class Config:
                 {
                     'root': {':value': '/tmp', ':default': '/tmp', ':hint': "The components communicate to the node manager through file sockets. For each component a new socket with it`s id will be created in this path."},
                     'nm_path': {':value': 'JuniorRTE', ':default': 'JuniorRTE', ':hint': "Contact socket name to the node manager."},
-                    'queue_length': {':value': 50, ':default': 50, ':hint': "Maximal message count for each priority in the send queue."}
+                    'queue_length': {':value': 100, ':default': 100, ':hint': "Maximal message count for each priority in the send queue."}
                 },
                 'udp':
                 {
@@ -130,7 +130,7 @@ class Config:
                     'use_mcast': {':value': True, ':default': True, ':hint': "If disabled, only unicast communication will be used. You need to specify the address book!"},
                     'group': {':value': '239.255.0.1', ':default': '239.255.0.1', ':hint': "Broadcasts are restricted to a multicast IP address. (Default: 239.255.0.1)."},
                     'ttl': {':value': 16, ':default': 16, ':hint': "Time to leave (Default: 16)."},
-                    'queue_length': {':value': 50, ':default': 50, ':hint': "Maximal message count for each priority in the send queue."},
+                    'queue_length': {':value': 100, ':default': 100, ':hint': "Maximal message count for each priority in the send queue."},
                     'interface': {':value': '', ':default': '', ':hint': "By default it binds to all network interfaces. You can bind it to specific one by specifying the address like 192.168.101.10"},
                     'buffer_size': {':value': 0, ':default': 0, ':hint': "Size of the send buffer. Zero do not changes the default buffer."},
                 },
@@ -142,13 +142,13 @@ class Config:
                     'use_mcast': {':value': False, ':hint': "If disabled, unicast address is used in other case the message will be broadcasted to a multicast IP. (Default: False)"},
                     'group': {':value': '239.255.0.100', ':default': '239.255.0.100', ':hint': "If `use_mcast` is True, the messages are broadcasted to a multicast IP address. (Default: 239.255.0.100)."},
                     'interface': {':value': '', ':default': '', ':hint': "By default it binds to all network interfaces. You can bind it to specific one by specifying the address like 192.168.101.10. Only if use_mcast is set to `True`."},
-                    'queue_length': {':value': 50, ':default': 50, ':hint': "Maximal message count for each priority in the send queue."}
+                    'queue_length': {':value': 100, ':default': 100, ':hint': "Maximal message count for each priority in the send queue."}
                 },
                 'tcp':
                 {
                     'enable': {':value': False, ':default': False, ':hint': "Enable TCP communication. (Default: False)"},
                     'port': {':value': 3794, ':default': 3794, ':hint': "By default, uses the port reserved for JAUS as assigned by the IANA for all TCP traffic. Changing the TCP port assignment is not recommended. (Default: 3794)."},
-                    'queue_length': {':value': 50, ':default': 50, ':hint': "Maximal message count for each priority in the send queue."},
+                    'queue_length': {':value': 100, ':default': 100, ':hint': "Maximal message count for each priority in the send queue."},
                     'interface': {':value': '', ':default': '', ':hint': "By default it binds to all network interfaces. You can bind it to specific one by specifying the address like 192.168.101.10"},
                 },
             },
