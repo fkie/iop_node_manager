@@ -80,7 +80,7 @@ class PQueue(object):
                 if self.size() == 0:
                     if block:
                         self._cv.wait()
-                else:
+                if self.size() > 0:
                     item = None
                     for idx in self._idx:
                         if self._counts[idx]:
