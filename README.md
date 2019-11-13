@@ -1,5 +1,7 @@
 # IOP Node Manager
 
+[![Build Status](https://travis-ci.org/fkie/iop_node_manager.svg?branch=master)](https://travis-ci.org/fkie/iop_node_manager)
+
 ## Summary
 
 The communication between the IOP components occurs via a Node Manager. The Node Manager performs like a router, detects local and remote components and routes the messages to the right destination. In an IOP system one Node Manager should run on each host.
