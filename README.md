@@ -33,10 +33,16 @@ Clone this repository to your preffered destination.
 
   ```console
   cd iop_node_manager/fkie_iop_node_manager
-  cd python setup.py install --user
+  python setup.py install --user --record installed_files.txt
   ```
 
   The executables are now located in `~/.local/bin`.
+
+  **Note:** to remove installed files call
+
+  ```console
+  xargs rm -rf < installed_files.txt
+  ```
 
 ## Run
 
