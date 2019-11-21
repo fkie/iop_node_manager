@@ -9,9 +9,14 @@ import fkie_iop_node_manager
 
 
 try:
-    params = rospy.get_param(rosgraph.names.resolve_name("iop_node_manager", rospy.core.get_caller_id()), {})
-    fkie_iop_node_manager.start("iop_node_manager", block=False, params=params)
-    rospy.init_node("iop_node_manager")
+    rospy.names.reload_mappings(sys.argv)
+    mappings = rospy.names.get_mappings()
+    name = "iop_node_manager"
+    if '__name' in mappings:
+        name = mappings['__name']
+    params = rospy.get_param(rosgraph.names.resolve_name(name, rospy.core.get_caller_id()), {})
+    fkie_iop_node_manager.start(name, block=False, params=params)
+    rospy.init_node(name)
     rospy.spin()
     fkie_iop_node_manager.shutdown()
 except Exception as err:

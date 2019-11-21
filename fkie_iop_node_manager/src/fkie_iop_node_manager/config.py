@@ -122,7 +122,8 @@ class Config:
                 {
                     'root': {':value': '/tmp', ':default': '/tmp', ':hint': "The components communicate to the node manager through file sockets. For each component a new socket with it`s id will be created in this path."},
                     'nm_path': {':value': 'JuniorRTE', ':default': 'JuniorRTE', ':hint': "Contact socket name to the node manager."},
-                    'queue_length': {':value': 100, ':default': 100, ':hint': "Maximal message count for each priority in the send queue."}
+                    'queue_length': {':value': 100, ':default': 100, ':hint': "Maximal message count for each priority in the send queue."},
+                    'send_buffer': {':value': 0, ':default': 0, ':hint': "Size of the send buffer. Zero do not changes the default buffer."}
                 },
                 'udp':
                 {
@@ -132,7 +133,7 @@ class Config:
                     'ttl': {':value': 16, ':default': 16, ':hint': "Time to leave (Default: 16)."},
                     'queue_length': {':value': 100, ':default': 100, ':hint': "Maximal message count for each priority in the send queue."},
                     'interface': {':value': '', ':default': '', ':hint': "By default it binds to all network interfaces. You can bind it to specific one by specifying the address like 192.168.101.10"},
-                    'buffer_size': {':value': 0, ':default': 0, ':hint': "Size of the send buffer. Zero do not changes the default buffer."},
+                    'send_buffer': {':value': 0, ':default': 0, ':hint': "Size of the send buffer. Zero do not changes the default buffer."},
                 },
                 'loopback_debug':
                 {
@@ -333,23 +334,27 @@ class Config:
                 self.save()
             self._notify_reload_listener()
 
-    def _apply_recursive(self, new_data, curr_value):
-        new_cfg = dict()
-        if not curr_value:
+    def _apply_recursive(self, new_data, curr_data, path=''):
+        new_cfg = dict(curr_data)
+        if path:
+            path = "%s:" % path
+        if not curr_data:
             return new_data
-        for key, value in curr_value.items():
+        for key, value in new_data.items():
             try:
-                if isinstance(value, dict):
-                    if self._is_writable(value) and key in new_data:
-                        new_cfg[key] = self._apply_recursive(new_data[key], value)
-                    else:
-                        new_cfg[key] = value
-                elif key not in [':hint', ':default', ':ro', ':min', ':max', ':alt']:
-                    if isinstance(new_data, dict):
-                        new_cfg[key] = new_data[key]
-                    else:
-                        new_cfg[key] = new_data
+                curr_value = None
+                if key in new_cfg:
+                    curr_value = new_cfg[key]
+                    if self._is_writable(value):
+                        if isinstance(curr_value, dict):
+                            if isinstance(value, dict):
+                                new_cfg[key] = self._apply_recursive(value, curr_value, "%s%s" % (path, key))
+                            elif key not in [':hint', ':default', ':ro', ':min', ':max', ':alt']:
+                                new_cfg[key][':value'] = value
+                        elif isinstance(curr_value, dict):
+                            new_cfg[key] = value
                 else:
+                    self.logger.warning("added new configuration key: %s%s: %s" % (path, key, value))
                     new_cfg[key] = value
             except Exception:
                 import traceback
@@ -358,7 +363,7 @@ class Config:
         return new_cfg
 
     def _is_writable(self, value):
-        if ':ro' in value:
+        if isinstance(value, dict) and ':ro' in value:
             return value[':ro']
         return True
 
