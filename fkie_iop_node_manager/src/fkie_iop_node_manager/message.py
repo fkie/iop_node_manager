@@ -68,6 +68,7 @@ class Message(object):
             - Local Broadcast (Decimal value 1): The message is intended for the local destinations only.
             - Global Broadcast (Decimal value 2): The message is intended for all available destinations.
         '''
+        self._bcast_recved_size = 0  # for statistical purposes, since raw size will be reseted for broadcast messages
         self._acknak = 0
         ''':ivar acknak:
             - Message Originator (0 or 1)
@@ -246,6 +247,7 @@ class Message(object):
             self._raw += raw
         self._raw_prefix_length = header_length
         self._raw_size = len(self._raw)
+        self._bcast_recved_size = self._raw_size
 
     def bytes(self, version=None, prepend_version=True):
         result = b''

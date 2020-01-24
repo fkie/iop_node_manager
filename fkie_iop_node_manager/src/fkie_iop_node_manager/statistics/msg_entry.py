@@ -36,6 +36,7 @@ class MsgEntry:
         self.msg_id = 0
         self.version = 0
         self.raw_size = 0
+        self.cmd_code = 0
         self.priority = 0
         self.acknak = 0
         self.data_flags = 0
@@ -53,6 +54,7 @@ class MsgEntry:
         result += " msg_id=0x%x" % self.msg_id
         result += " version=%d" % self.version
         result += " raw_size=%d" % self.raw_size
+        result += " cmd_code=%d" % self.cmd_code
         result += " priority=%d" % self.priority
         result += " acknak=%d" % self.acknak
         result += " data_flags=%d" % self.data_flags
@@ -62,7 +64,7 @@ class MsgEntry:
 
     @staticmethod
     def title(with_newline=True):
-        title = "# timestamp, from socket, from address, from JAUS id, to address, to JAUS id, message id, message name, version, bytes, priority, acknak, data flags, seqnr"
+        title = "# timestamp, from socket, from address, from JAUS id, to address, to JAUS id, message id, message name, version, bytes, cmd_code, priority, acknak, data flags, seqnr"
         if with_newline:
             title += '\n'
         return title
@@ -86,7 +88,8 @@ class MsgEntry:
         line += ' 0x%.4x' % msg.msg_id
         line += ' %s' % cfg.msg_name(msg.msg_id)
         line += ' %d' % msg.version
-        line += ' %d' % msg.raw_size
+        line += ' %d' % msg.raw_size if msg.raw_size > 0 else self._bcast_recved_size
+        line += ' %d' % msg.cmd_code
         line += ' %d' % msg.priority
         line += ' %d' % msg.acknak
         line += ' %d' % msg.data_flags
@@ -111,8 +114,9 @@ class MsgEntry:
             result.msg_name = items[8]
             result.version = int(items[9])
             result.raw_size = int(items[10])
-            result.priority = int(items[11])
-            result.acknak = int(items[12])
-            result.data_flags = int(items[13])
-            result.seqnr = int(items[14])
+            result.cmd_code = int(items[11])
+            result.priority = int(items[12])
+            result.acknak = int(items[13])
+            result.data_flags = int(items[14])
+            result.seqnr = int(items[15])
         return result
