@@ -100,7 +100,7 @@ class JausAddress(object):
         return True
 
     @classmethod
-    def from_ids(self, subsystem=65535, node=255, component=255):
+    def from_ids(cls, subsystem=65535, node=255, component=255):
         '''
         :raise ValueError: if one of id's exceeds the maximum value. Does not check for negative values.
         '''
@@ -117,7 +117,7 @@ class JausAddress(object):
         return result
 
     @classmethod
-    def from_string(self, strid):
+    def from_string(cls, strid):
         if strid.startswith('J'):
             # compatibility to JausToolSet configuration
             return JausAddress(int(strid[1:]))
@@ -129,6 +129,6 @@ class JausAddress(object):
                 sid = int(ids[0])
                 nid = int(ids[1])
                 cid = int(ids[2])
-                return self.from_ids(sid, nid, cid)
+                return cls.from_ids(sid, nid, cid)
             except ValueError as err:
                 raise ValueError("invalid jaus address '%s': %s" % (strid, err))

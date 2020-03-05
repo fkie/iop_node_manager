@@ -32,7 +32,9 @@ class EvalBytes:
     def __init__(self, input_filename, interval=1):
         self._stop = False
         self._input_filename = input_filename
-        self.interval = interval
+        if interval <= 0:
+            interval = 1
+        self.interval = 1 / interval
         self._current_interval = 0
         self.ts = 0
         self.udp_count_recv = 0

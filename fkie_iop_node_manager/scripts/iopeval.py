@@ -21,6 +21,8 @@ def init_arg_parser():
     parser = argparse.ArgumentParser(description='Analyse statistics of IOP Node Manager.')
     parser.add_argument("mode", type=str, nargs='?', choices=['bytes', 'connections'], help="Select evaluation mode.")
     parser.add_argument("statfile", type=str, nargs='?', help="Path to file with statistics of IOP node manaer.")
+    parser.add_argument("-i", "--interval", type=float, nargs='?', default=1.0, metavar="Hz", help="Evaluation interval in Hz.")
+    parser.add_argument("--print_only", type=float, nargs='+', default=[], metavar="INTERVAL", help="Prints only the sspecified intervals.")
     return parser
 
 
@@ -31,12 +33,12 @@ if __name__ == '__main__':
     if parsed_args.statfile is not None:
         if parsed_args.mode == 'bytes':
             print_help = False
-            eb = EvalBytes(parsed_args.statfile)
+            eb = EvalBytes(parsed_args.statfile, interval=parsed_args.interval)
             eb.evaluate()
             eb.stop()
         elif parsed_args.mode == 'connections':
             print_help = False
-            ec = EvalConnections(parsed_args.statfile)
+            ec = EvalConnections(parsed_args.statfile, interval=parsed_args.interval, print_only=parsed_args.print_only)
             ec.evaluate()
             ec.stop()
     if print_help:

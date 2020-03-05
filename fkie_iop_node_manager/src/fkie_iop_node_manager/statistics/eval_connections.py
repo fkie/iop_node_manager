@@ -31,10 +31,13 @@ class EvalConnections:
     Reads statistics from file and prints connection stats to stdout.
     '''
 
-    def __init__(self, input_filename, interval=3):
+    def __init__(self, input_filename, interval=3, print_only=[]):
         self._stop = False
         self._input_filename = input_filename
+        if interval <= 0:
+            interval = 3
         self.interval = interval
+        self.print_only = print_only
         self.interval_nr = 0
         self.ts = 0
         self.received_bc = {}
@@ -84,13 +87,18 @@ class EvalConnections:
                 break
 
     def _print_stats(self):
-        print("--- %d sec:" % self.interval_nr)
+        if self.print_only and self.interval_nr not in self.print_only:
+            return
+        print("--- %.3f --- %d sec:" % (self.ts, self.interval_nr))
         print("Connections: %d" % len(self.conns))
         for (src_id, src_address, dst_id, dst_address), (count, bytes_sent) in self.conns.items():
             print("  %s (%s) -> %s (%s)\n    count packets: %d, %s" % (src_id, src_address, dst_id, dst_address, count, self.sizeof_fmt(bytes_sent)))
         print("Broadcast connections: %d" % len(self.received_bc))
         for (src_id, src_address, dst_id, dst_address), (count, bytes_sent) in self.received_bc.items():
-            print("  %s (%s) -> *, count packets: %d %s" % (src_id, src_address, count, self.sizeof_fmt(bytes_sent)))
+            dst_sys = '*' if dst_id.subsystem == 65535 else dst_id.subsystem
+            dst_node = '*' if dst_id.node == 255 else dst_id.node
+            dst_comp = '*' if dst_id.component == 255 else dst_id.component
+            print("  %s (%s) -> %s.%s.%s, count packets: %d %s" % (src_id, src_address, dst_sys, dst_node, dst_comp, count, self.sizeof_fmt(bytes_sent)))
         print("not forwarded: %d" % len(self.received_nf))
         for (src_id, src_address, dst_id, dst_address), (count, bytes_sent) in self.received_nf.items():
             print("  %s (%s) -> %s (%s), count packets: %d %s" % (src_id, src_address, dst_id, dst_address, count, self.sizeof_fmt(bytes_sent)))
@@ -100,4 +108,4 @@ class EvalConnections:
             if abs(num) < 1024.0:
                 return "%.0f%s%s" % (num, unit, suffix)
             num /= 1024.0
-        return "%.0%s%s" % (num, 'YiB', suffix)
+        return "%.0f%s%s" % (num, 'YiB', suffix)
