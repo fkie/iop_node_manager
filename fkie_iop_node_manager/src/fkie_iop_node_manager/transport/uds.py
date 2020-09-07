@@ -23,13 +23,13 @@ from __future__ import division, absolute_import, print_function, unicode_litera
 import errno
 import logging
 import os
+import stat
 import socket
 import traceback
 import time
 
 from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.message_parser import MessageParser
-
 
 class UDSSocket(socket.socket):
     '''
@@ -49,10 +49,11 @@ class UDSSocket(socket.socket):
             self.logger.debug("Connect to local socket %s" % self._socket_path)
             self.connect(self._socket_path)
         else:
+            self.logger.debug("Create local socket connection %s" % self._socket_path)
             if os.path.exists(self._socket_path):
                 os.unlink(self._socket_path)
-            self.logger.debug("Create local socket connection %s" % self._socket_path)
             self.bind(self._socket_path)
+            os.chmod(self._socket_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
 
     @property
     def socket_path(self):
