@@ -6,6 +6,7 @@ import rosgraph
 import ruamel.yaml
 import sys
 import fkie_iop_node_manager
+import logging
 
 
 try:
@@ -18,8 +19,12 @@ try:
     fkie_iop_node_manager.start(name, block=False, params=params)
     rospy.init_node(name)
     rospy.spin()
-    fkie_iop_node_manager.shutdown()
 except Exception as err:
     import traceback
     print(traceback.format_exc())
     print("Error while initialize ROS-Node: %s" % (err), file=sys.stderr)
+finally:
+    try:
+        fkie_iop_node_manager.shutdown()
+    except Exception:
+        pass

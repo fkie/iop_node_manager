@@ -20,7 +20,6 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
-import logging
 import socket
 import threading
 import traceback
@@ -28,11 +27,12 @@ import traceback
 import fkie_iop_node_manager.queue as queue
 from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.message_parser import MessageParser
+from fkie_iop_node_manager.logger import NMLogger
 
 
 class TCPInput(object):
 
-    def __init__(self, connection, router=None, logger_name='tcp_input', recv_buffer=5000, queue_length=0, close_callback=None):
+    def __init__(self, connection, router=None, logger_name='tcp_input', recv_buffer=5000, queue_length=0, close_callback=None, loglevel='info'):
         '''
         :param (str,int) connection: client address.
         :param router: class which provides `route_tcp_msg(fkie_iop_node_manager.message.Message)` method. If `None` receive will be disabled.
@@ -41,15 +41,15 @@ class TCPInput(object):
         self._send_error_printed = False
         self._connection = connection
         self._raddr = connection.getpeername()
-        self.logger = logging.getLogger('%s[%s:%d]' % (logger_name, self._raddr[0], self._raddr[1]))
+        self.logger = NMLogger('%s[%s:%d]' % (logger_name, self._raddr[0], self._raddr[1]), loglevel)
         self._router = router
         self._recv_buffer = recv_buffer
         self._queue_length = queue_length
         self._close_callback = close_callback
         self._first_send_msg = True
-        self._queue_send = queue.PQueue(queue_length, 'queue_%s_send_%s:%d' % (logger_name, self._raddr[0], self._raddr[1]))
+        self._queue_send = queue.PQueue(queue_length, 'queue_%s_send_%s:%d' % (logger_name, self._raddr[0], self._raddr[1]), loglevel=loglevel)
         self._endpoint_client = AddressBook.Endpoint(AddressBook.Endpoint.TCP, self._raddr[0], self._raddr[1])
-        self._message_parser = MessageParser(self._endpoint_client, stream=True)
+        self._message_parser = MessageParser(self._endpoint_client, stream=True, loglevel=loglevel)
         self._thread_send = threading.Thread(target=self._loop_send)
         self._thread_send.start()
         if self._router is not None:

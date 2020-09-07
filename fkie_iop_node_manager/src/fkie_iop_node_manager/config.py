@@ -21,11 +21,12 @@
 from __future__ import division, absolute_import, print_function, unicode_literals
 
 import os
-import logging
 import ruamel.yaml
 import socket
 import threading
 import traceback
+
+from fkie_iop_node_manager.logger import NMLogger
 
 
 class Config:
@@ -35,7 +36,6 @@ class Config:
 
     def __init__(self, filename='', version='', params={}):
         self._stop = False
-        self.logger = logging.getLogger('config')
         self._mutex = threading.RLock()
         self.version = version
         self.filename = filename
@@ -47,12 +47,15 @@ class Config:
         self._reload_callbacks = []
         self._param_callbacks = {}
         self._cfg = None
+        self.logger = NMLogger('config')
         self.reload()
+        NMLogger.setall_loglevel(self.param('global/loglevel', 'info'))
         self.apply(params, save=False)
         self.msg_ids = {}  # (int)id: (str)Name
         self._read_msg_ids()
         self._cfgif = None
         self._cfgif_address = None
+        self.add_param_listener('global/loglevel', self._callback_change_loglevel)
 
     def init_cfgif(self, cfgif=''):
         try:
@@ -293,7 +296,7 @@ class Config:
                 ruamel.yaml.dump(self._cfg, stream, Dumper=ruamel.yaml.RoundTripDumper)
                 self.logger.debug("Configuration saved to '%s'" % self.filename)
             except ruamel.yaml.YAMLError as exc:
-                self.logger.warn("Cant't save configuration to '%s': %s" % (self.filename, exc))
+                self.logger.warning("Cant't save configuration to '%s': %s" % (self.filename, exc))
         if save_msg_ids:
             filename = self.param('statistics/msg_names', 'msg.ids')
             if not os.path.isabs(filename):
@@ -367,6 +370,9 @@ class Config:
             return value[':ro']
         return True
 
+    def _callback_change_loglevel(self, param, loglevel):
+        NMLogger.setall_loglevel(loglevel)
+
     def add_reload_listener(self, callback, call=True):
         '''
         Adds a subscriber to change notifications. All subscribers are notified on any changes.
@@ -424,7 +430,7 @@ class Config:
                                 self.logger.warning("Error while notify parameter listener on changed parameter '%s': %s" % (pv[0], perr))
                 connection.close()
             except Exception as err:
-                if err.errno == 22:
+                if hasattr(err, 'errno') and err.errno == 22:
                     # handle shutdown
                     return
                 print(traceback.format_exc())

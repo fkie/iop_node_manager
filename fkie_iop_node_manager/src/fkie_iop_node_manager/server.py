@@ -31,20 +31,21 @@ from .transport.udp_mc import UDPmcSocket
 from .transport.udp_uc import UDPucSocket
 from .transport.tcp_server import TCPServer
 
-import logging
+from fkie_iop_node_manager.logger import NMLogger
 
 
 class Server():
 
     def __init__(self, cfg_file, version='', params={}):
-        self.logger = logging.getLogger('server')
         self.cfg = Config(cfg_file, version, params)
+        loglevel = self.cfg.param('global/loglevel', 'info')
+        self.logger = NMLogger('server', loglevel)
         self.cfg.init_cfgif()
         self._stop = False
         default_port = self.cfg.param('transport/udp/port', 3794)
         addrbook_udp = self.cfg.param('addrbook/udp', {})
         addrbook_tcp = self.cfg.param('addrbook/tcp', {})
-        self.addrbook = AddressBook(default_port=default_port, addrbook_udp=addrbook_udp, addrbook_tcp=addrbook_tcp)
+        self.addrbook = AddressBook(default_port=default_port, addrbook_udp=addrbook_udp, addrbook_tcp=addrbook_tcp, loglevel=loglevel)
         self.statistics = Collector(self.cfg)
         self._local_mngr = None
         self._udp = None
@@ -52,8 +53,7 @@ class Server():
         self._lock = threading.RLock()
 
     def start(self, block=True):
-        self._callback_change_loglevel('global/loglevel', self.cfg.param('global/loglevel', 'info'))
-        self.cfg.add_param_listener('global/loglevel', self._callback_change_loglevel)
+        # self._callback_change_loglevel('global/loglevel', self.cfg.param('global/loglevel', 'info'))
         self._local_mngr = UDSServer(self, self.cfg, self.addrbook, self.statistics)
         self._on_discover = {}
         port = self.cfg.param('transport/udp/port', 3794)
@@ -64,9 +64,9 @@ class Server():
         buffer_size = self.cfg.param('transport/udp/buffer_size', 0)
         queue_length = self.cfg.param('transport/udp/queue_length', 0)
         if use_mcast:
-            self._udp = UDPmcSocket(port, mgroup, router=self, ttl=ttl, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length)
+            self._udp = UDPmcSocket(port, mgroup, router=self, ttl=ttl, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level())
         else:
-            self._udp = UDPucSocket(port, router=self, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length)
+            self._udp = UDPucSocket(port, router=self, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level())
         # create TCP server
         tcp_enabled = self.cfg.param('transport/tcp/enable', False)
         self._tcp_server = None
@@ -74,7 +74,7 @@ class Server():
             tcp_port = self.cfg.param('transport/tcp/port', 3794)
             tcp_interface = self.cfg.param('transport/tcp/interface', '')
             tcp_queue_length = self.cfg.param('transport/tcp/queue_length', 0)
-            self._tcp_server = TCPServer(port=tcp_port, router=self, interface=tcp_interface, logger_name='tcp', recv_buffer=self.cfg.RECV_BUFFER, queue_length=tcp_queue_length)
+            self._tcp_server = TCPServer(port=tcp_port, router=self, interface=tcp_interface, logger_name='tcp', recv_buffer=self.cfg.RECV_BUFFER, queue_length=tcp_queue_length, loglevel=self.logger.level())
         try:
             while block:
                 time.sleep(1)
@@ -166,18 +166,6 @@ class Server():
             self.statistics.add(msg)
         except Exception as err:
             print("ERROR", err)
-
-    def _callback_change_loglevel(self, param, loglevel):
-        if loglevel == 'debug':
-            logging.getLogger().setLevel(level=logging.DEBUG)
-        elif loglevel == 'info':
-            logging.getLogger().setLevel(level=logging.INFO)
-        elif loglevel == 'warning':
-            logging.getLogger().setLevel(level=logging.WARNING)
-        elif loglevel == 'error':
-            logging.getLogger().setLevel(level=logging.ERROR)
-        elif loglevel == 'critical':
-            logging.getLogger().setLevel(level=logging.CRITICAL)
 
     def shutdown(self):
         self.cfg.close()

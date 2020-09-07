@@ -21,8 +21,9 @@
 from __future__ import division, absolute_import, print_function, unicode_literals
 
 
-import logging
 import threading
+from fkie_iop_node_manager.logger import NMLogger
+
 
 
 class Full(Exception):
@@ -31,14 +32,14 @@ class Full(Exception):
 
 class PQueue(object):
 
-    def __init__(self, maxsize=0, logger_name='queue'):
+    def __init__(self, maxsize=0, logger_name='queue', loglevel='info'):
         '''
         :param int maxsize: The maximal queue length for each priority. No new items are added if this size is reached. Zero to disable the limit for each priority.
         :param str logger_name: the name of this priority queue used for logging or exceptions.
         :param dict(str:int) priority_map: Map to overried priority. The key is message id represented as HEX string. Value is priority (0-3).
         '''
         self._logger_name = logger_name
-        self.logger = logging.getLogger(logger_name)
+        self.logger = NMLogger(logger_name, loglevel)
         self._cv = threading.Condition()
         self._maxsize = maxsize
         self._pq = {3: [],

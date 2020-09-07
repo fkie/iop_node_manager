@@ -21,7 +21,6 @@
 from __future__ import division, absolute_import, print_function, unicode_literals
 
 import errno
-import logging
 import socket
 import threading
 import traceback
@@ -30,11 +29,12 @@ import fkie_iop_node_manager.queue as queue
 from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.message_parser import MessageParser
 from .net import getaddrinfo
+from fkie_iop_node_manager.logger import NMLogger
 
 
 class UDPucSocket(socket.socket):
 
-    def __init__(self, port=0, router=None, interface='', logger_name='udp', default_dst=None, send_buffer=0, recv_buffer=0, queue_length=0):
+    def __init__(self, port=0, router=None, interface='', logger_name='udp', default_dst=None, send_buffer=0, recv_buffer=0, queue_length=0, loglevel='info'):
         '''
         Creates a socket, bind it to a given interface+port for unicast send/receive.
         IPv4 and IPv6 are supported.
@@ -45,13 +45,14 @@ class UDPucSocket(socket.socket):
         :param tuple(str,int) default_dst: used for loopback to send messages to predefined destination.
         '''
         self._closed = False
-        self.logger = logging.getLogger('%s[%s:%d]' % (logger_name, interface, port))
+        self.logger = NMLogger('%s[%s:%d]' % (logger_name, interface, port), loglevel)
         self.interface = interface
         self.port = port
         self._router = router
         self._default_dst = default_dst
         self._recv_buffer = recv_buffer
         self._sender_endpoints = {}
+        self.sock_5_error_printed = []
         # If interface isn't specified, try to find an non localhost interface to
         # get some info for binding. Otherwise use localhost
         # if not self.interface:
@@ -71,7 +72,7 @@ class UDPucSocket(socket.socket):
         socket.socket.__init__(self, socket_type, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         # Bind to the port
         try:
-            self.logger.debug("Ucast bind to: (%s:%s)", bind_ip, port)
+            self.logger.debug("Ucast bind to: (%s:%s)" % (bind_ip, port))
             self.bind((bind_ip, port))
         except socket.error as errobj:
             msg = str(errobj)
@@ -87,8 +88,8 @@ class UDPucSocket(socket.socket):
 #                self.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, buffersize)
                 bufsize = self.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)
                 self.logger.debug("Changed buffer size from %d to %d" % (old_bufsize, bufsize))
-        self._parser_ucast = MessageParser(None)
-        self._queue_send = queue.PQueue(queue_length, 'queue_%s_send' % logger_name)
+        self._parser_ucast = MessageParser(None, loglevel=loglevel)
+        self._queue_send = queue.PQueue(queue_length, 'queue_%s_send' % logger_name, loglevel=loglevel)
         # create a thread to handle the received unicast messages
         if self._router is not None:
             self._thread_recv = threading.Thread(target=self._loop_recv)

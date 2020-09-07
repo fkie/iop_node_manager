@@ -21,7 +21,6 @@
 from __future__ import division, absolute_import, print_function, unicode_literals
 
 import errno
-import logging
 import socket
 import struct
 import threading
@@ -31,6 +30,7 @@ import fkie_iop_node_manager.queue as queue
 from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.message_parser import MessageParser
 from .net import getaddrinfo, localifs
+from fkie_iop_node_manager.logger import NMLogger
 
 SEND_ERRORS = {}
 
@@ -42,7 +42,7 @@ class UDPmcSocket(socket.socket):
     'send_mcast' and 'listen_mcast' parameter are set to False or a specific interface is defined.
     '''
 
-    def __init__(self, port, mgroup, router=None, ttl=16, interface='', logger_name='udp_mc', send_buffer=0, recv_buffer=0, queue_length=0):
+    def __init__(self, port, mgroup, router=None, ttl=16, interface='', logger_name='udp_mc', send_buffer=0, recv_buffer=0, queue_length=0, loglevel='info'):
         '''
         Creates a socket, bind it to a given port and join to a given multicast
         group. IPv4 and IPv6 are supported.
@@ -54,7 +54,7 @@ class UDPmcSocket(socket.socket):
         :param int ttl: time to leave (Default: 20)
         :param str interface: IP of interface to bind (Default: '').
         '''
-        self.logger = logging.getLogger('%s[%s:%d]' % (logger_name, mgroup, port))
+        self.logger = NMLogger('%s[%s:%d]' % (logger_name, mgroup.replace('.', '_'), port), loglevel)
         self.port = port
         self.mgroup = mgroup
         self._lock = threading.RLock()
@@ -79,7 +79,7 @@ class UDPmcSocket(socket.socket):
         self.logger.debug("inet: %s" % str(addrinfo))
 
         socket.socket.__init__(self, addrinfo[0], socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self.logger.info("Create multicast socket @('%s', %d)", self.mgroup, port)
+        self.logger.info("Create multicast socket @('%s', %d)" % (self.mgroup, port))
         # initialize multicast socket
         # Allow multiple copies of this program on one machine
         if hasattr(socket, "SO_REUSEPORT"):
@@ -142,8 +142,8 @@ class UDPmcSocket(socket.socket):
             self.logger.critical("Unable to bind multicast to interface: %s, check that it exists: %s" % (self.mgroup, msg))
             raise
         self._router = router
-        self._queue_send = queue.PQueue(queue_length, 'queue_udp_send')
-        self._parser_mcast = MessageParser(None)
+        self._queue_send = queue.PQueue(queue_length, 'queue_udp_send', loglevel=loglevel)
+        self._parser_mcast = MessageParser(None, loglevel=loglevel)
         self.addrinfo = addrinfo
         # create a thread to handle the received multicast messages
         if self._router is not None:
@@ -169,7 +169,7 @@ class UDPmcSocket(socket.socket):
         else:  # IPv6
             self.setsockopt(socket.IPPROTO_IPV6,
                             socket.IPV6_LEAVE_GROUP,
-                            self.group_bing)
+                            self.group_bin)
         socket.socket.close(self)
         self._queue_send.clear()
 

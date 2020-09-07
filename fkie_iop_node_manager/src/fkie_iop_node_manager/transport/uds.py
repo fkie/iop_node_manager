@@ -21,7 +21,6 @@
 from __future__ import division, absolute_import, print_function, unicode_literals
 
 import errno
-import logging
 import os
 import stat
 import socket
@@ -30,21 +29,22 @@ import time
 
 from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.message_parser import MessageParser
+from fkie_iop_node_manager.logger import NMLogger
 
 class UDSSocket(socket.socket):
     '''
     Wrapper for Unix Domain Sockets.
     '''
 
-    def __init__(self, name, remove_on_close=False, force_bind=False, root_path='/tmp', recv_buffer=5000):
+    def __init__(self, name, remove_on_close=False, force_bind=False, root_path='/tmp', recv_buffer=5000, loglevel='info'):
         self._closed = False
-        self.logger = logging.getLogger('uds[%s]' % name)
+        self.logger = NMLogger('uds[%s]' % name, loglevel)
         self._remove_on_close = remove_on_close
         self._recv_buffer = recv_buffer
         socket.socket.__init__(self, socket.AF_UNIX, socket.SOCK_DGRAM)
         self.setblocking(True)
         self._socket_path = os.path.join(root_path, name)
-        self._parser = MessageParser(AddressBook.Endpoint(AddressBook.Endpoint.UDS, self._socket_path))
+        self._parser = MessageParser(AddressBook.Endpoint(AddressBook.Endpoint.UDS, self._socket_path), loglevel=loglevel)
         if os.path.exists(self._socket_path) and not force_bind:
             self.logger.debug("Connect to local socket %s" % self._socket_path)
             self.connect(self._socket_path)

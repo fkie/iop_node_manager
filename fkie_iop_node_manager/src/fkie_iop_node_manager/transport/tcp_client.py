@@ -20,7 +20,6 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
-import logging
 import socket
 import threading
 import traceback
@@ -29,11 +28,12 @@ import fkie_iop_node_manager.queue as queue
 from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.message_parser import MessageParser
 from .net import getaddrinfo
+from fkie_iop_node_manager.logger import NMLogger
 
 
 class TCPClient(socket.socket):
 
-    def __init__(self, host='', port=0, router=None, interface='', logger_name='tcp_client', recv_buffer=5000, queue_length=0):
+    def __init__(self, host='', port=0, router=None, interface='', logger_name='tcp_client', recv_buffer=5000, queue_length=0, loglevel='info'):
         '''
         :param str host: destination host.
         :param int port: destination port.
@@ -42,12 +42,12 @@ class TCPClient(socket.socket):
         self._closed = False
         self._connected = False
         self._connection_error_printed = False
-        self.logger = logging.getLogger('%s[%s:%d]' % (logger_name, host, port))
+        self.logger = NMLogger('%s[%s:%d]' % (logger_name, host, port), loglevel)
         self._router = router
         self._recv_buffer = recv_buffer
         self._queue_length = queue_length
         self._socket_type = socket.AF_INET
-        self._queue_send = queue.PQueue(queue_length, 'queue_%s_send_%s:%d' % (logger_name, host, port))
+        self._queue_send = queue.PQueue(queue_length, 'queue_%s_send_%s:%d' % (logger_name, host, port), loglevel=loglevel)
         self._raddr = (host, port)
         self.interface = interface
         self._first_send_msg = True
@@ -55,7 +55,7 @@ class TCPClient(socket.socket):
             addrinfo = getaddrinfo(self.interface)
             self._socket_type = addrinfo[0]
         self._endpoint_client = AddressBook.Endpoint(AddressBook.Endpoint.TCP, host, port)
-        self._message_parser = MessageParser(self._endpoint_client, stream=True)
+        self._message_parser = MessageParser(self._endpoint_client, stream=True, loglevel=loglevel)
         self._thread_connect = threading.Thread(target=self._connect, args=(self._raddr,))
         self._thread_connect.start()
         self._thread_send = threading.Thread(target=self._loop_send)

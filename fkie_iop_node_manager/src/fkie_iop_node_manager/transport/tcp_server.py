@@ -20,7 +20,6 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
-import logging
 import socket
 import threading
 import time
@@ -29,11 +28,12 @@ import traceback
 from .net import getaddrinfo, is_local_iface
 from .tcp_client import TCPClient
 from .tcp_input import TCPInput
+from fkie_iop_node_manager.logger import NMLogger
 
 
 class TCPServer(socket.socket):
 
-    def __init__(self, port=0, router=None, interface='', logger_name='tcp', recv_buffer=5000, queue_length=0):
+    def __init__(self, port=0, router=None, interface='', logger_name='tcp', recv_buffer=5000, queue_length=0, loglevel='info'):
         '''
         :param int port: the port to bind the socket. If zero an empty one will be used.
         :param router: class which provides `route_tcp_msg(fkie_iop_node_manager.message.Message)` method. If `None` receive will be disabled.
@@ -41,7 +41,7 @@ class TCPServer(socket.socket):
         '''
         self._closed = False
         self._lock = threading.RLock()
-        self.logger = logging.getLogger('%s[%s:%d]' % (logger_name, interface, port))
+        self.logger = NMLogger('%s[%s:%d]' % (logger_name, interface, port), loglevel)
         self.interface = interface
         self.port = port
         self._router = router
@@ -100,7 +100,7 @@ class TCPServer(socket.socket):
                     self._clients[dst].send_queued(msg)
                 except KeyError:
                     if not is_local_iface(dst[0]):
-                        tcp_client = TCPClient(dst[0], port=dst[1], router=self._router, interface=self.interface, recv_buffer=self._recv_buffer, queue_length=self._queue_length)
+                        tcp_client = TCPClient(dst[0], port=dst[1], router=self._router, interface=self.interface, recv_buffer=self._recv_buffer, queue_length=self._queue_length, loglevel=self.logger.level())
                         tcp_client.send_queued(msg)
                         self._clients[dst] = tcp_client
             else:
@@ -116,7 +116,7 @@ class TCPServer(socket.socket):
             try:
                 connection, client_address = self.accept()
                 self.logger.debug("Add new input connection from %s" % str(client_address))
-                tcp_input = TCPInput(connection, router=self._router, recv_buffer=self._recv_buffer, queue_length=self._queue_length, close_callback=self._close_callback)
+                tcp_input = TCPInput(connection, router=self._router, recv_buffer=self._recv_buffer, queue_length=self._queue_length, close_callback=self._close_callback, loglevel=self.logger.level())
                 with self._lock:
                     if client_address in self._clients:
                         self._clients[client_address].close()
@@ -125,11 +125,11 @@ class TCPServer(socket.socket):
                 pass
             except socket.error as rerr:
                 if rerr.errno != 22:
-                    self.logger.debug("Error in receive loop: %s", traceback.format_exc())
+                    self.logger.debug("Error in receive loop: %s" % traceback.format_exc())
 
     def _close_callback(self, connection):
         with self._lock:
             if connection.getpeername() in self._clients:
-                self.logger.debug("Remove connection %s", str(connection))
+                self.logger.debug("Remove connection %s" % str(connection))
                 self._clients[connection.getpeername()].close()
                 del self._clients[connection.getpeername()]

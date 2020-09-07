@@ -19,9 +19,9 @@
 # ****************************************************************************
 
 from __future__ import division, absolute_import, print_function, unicode_literals
-import logging
 
 from .jaus_address import JausAddress
+from fkie_iop_node_manager.logger import NMLogger
 
 
 class AddressBook():
@@ -64,16 +64,17 @@ class AddressBook():
         def __ne__(self, other):
             return not self.__eq__(other)
 
-    def __init__(self, default_port=3794, addrbook_udp={}, addrbook_tcp={}):
+    def __init__(self, default_port=3794, addrbook_udp={}, addrbook_tcp={}, loglevel='info'):
         '''
         :param fkie_iop_node_manager.config.Config cfg: configuration
         '''
-        self.logger = logging.getLogger('addrbook')
+        self.logger = NMLogger('addrbook', loglevel)
         self._default_port = default_port
         self._map = {}
         self._static_tcp_port_map = {}
         self._static_udp = self._read_static_addr(addrbook_udp, AddressBook.Endpoint.UDP)
         self._static_tcp = self._read_static_addr(addrbook_tcp, AddressBook.Endpoint.TCP)
+        self.logger.debug('AddressBook initialized with %s' % self)
 
     def __str__(self):
         return "<AddressBook discovered[%d]=%s, configured_udp[%d]=%s, configured_tcp[%d]=%s/>" % (len(self._map), self._map, len(self._static_udp), self._static_udp, len(self._static_tcp), self._static_tcp)

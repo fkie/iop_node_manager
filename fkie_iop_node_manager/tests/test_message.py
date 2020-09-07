@@ -21,6 +21,7 @@
 import os
 import unittest
 
+from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.jaus_address import JausAddress
 from fkie_iop_node_manager.message import Message
 from fkie_iop_node_manager.message_parser import MessageParser
@@ -71,7 +72,7 @@ class TestMessageLib(unittest.TestCase):
 
     def test_message_parser_v2(self):
         # create message with Connect command code
-        mp = MessageParser("test_v2")
+        mp = MessageParser(AddressBook.Endpoint(AddressBook.Endpoint.UDS, 'test_v2'))
         msgs = mp.unpack(self.msg_query_identification)
         self.assertEqual(1, len(msgs), "wrong parsed message count, expected: %d, got: %d" % (1, len(msgs)))
         msg = msgs[0]
@@ -85,7 +86,7 @@ class TestMessageLib(unittest.TestCase):
         self.assertEqual(dst_id.value, msg.dst_id.value, "wrong dst_id value after deserialization, expected: %d, got: %d" % (dst_id.value, msg.dst_id.value))
 
     def test_message_parser_v1(self):
-        mp = MessageParser("test_v1")
+        mp = MessageParser(AddressBook.Endpoint(AddressBook.Endpoint.UDS, 'test_v1'))
         msgs = mp.unpack(self.msg_connect)
         self.assertEqual(1, len(msgs), "v1: wrong parsed message count, expected: %d, got: %d" % (1, len(msgs)))
         msg = msgs[0]
@@ -99,7 +100,7 @@ class TestMessageLib(unittest.TestCase):
         self.assertEqual(dst_id.value, msg.dst_id.value, "v1: wrong dst_id value after deserialization, expected: %d, got: %d" % (dst_id.value, msg.dst_id.value))
 
     def test_message_change_priority(self):
-        mp = MessageParser("test_cp")
+        mp = MessageParser(AddressBook.Endpoint(AddressBook.Endpoint.UDS, 'test_cp'))
         msg = mp.unpack(self.msg_query_identification)[0]
         msg.priority = 3
         self.assertEqual(3, msg.priority, "wrong priority value after set new value, expected: %d, got: %d" % (3, msg.priority))
@@ -107,7 +108,7 @@ class TestMessageLib(unittest.TestCase):
         self.assertEqual(3, msg.priority, "wrong priority value after serialization, expected: %d, got: %d" % (3, msg.priority))
 
     def test_message_change_seqnr(self):
-        mp = MessageParser("test_sn")
+        mp = MessageParser(AddressBook.Endpoint(AddressBook.Endpoint.UDS, 'test_sn'))
         msg = mp.unpack(self.msg_query_identification)[0]
         msg.seqnr = 3
         self.assertEqual(3, msg.seqnr, "wrong seqnr value after set new value, expected: %d, got: %d" % (3, msg.seqnr))

@@ -20,11 +20,11 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
-import logging
 import struct
 import sys
 from .jaus_address import JausAddress
 from .message import Message
+from fkie_iop_node_manager.logger import NMLogger
 
 IS_PYTHON_2 = sys.version_info[0] < 3
 
@@ -38,7 +38,7 @@ class MessageParser:
     MIN_PACKET_SIZE_V1 = 16
     MIN_PACKET_SIZE_V2 = 14
 
-    def __init__(self, sender, stream=False):
+    def __init__(self, sender, stream=False, loglevel='info'):
         '''
         :param AddressBook.Endpoint sender: the socket where the packed was received or the sender.
         :param bool stream: if stream is `True` received data will be concatenated. In this case the message version byte will be checked only in first message.
@@ -46,7 +46,10 @@ class MessageParser:
         self._sender = sender
         self._version_only_first = stream
         self._stream = stream
-        self.logger = logging.getLogger('msg[%s]' % sender)
+        name = sender
+        if name is not None:
+            name = sender.address.replace('.', '_')
+        self.logger = NMLogger('msg[%s]' % name, loglevel)
         self._data = b''
         self._version = None
 
@@ -106,7 +109,7 @@ class MessageParser:
             elif pkg_vers == 2:
                 # check for valid message length
                 if data_len < self.MIN_PACKET_SIZE_V2 + offset:
-                    self.logger.error("return, received data length %d is to small for message version 2 (%d)", data_len, self.MIN_PACKET_SIZE_V2 + offset)
+                    self.logger.error("return, received data length %d is to small for message version 2 (%d)" % (data_len, self.MIN_PACKET_SIZE_V2 + offset))
                     return msg_list
                 msg.version = Message.AS5669A
                 (flags, msg._data_size) = struct.unpack('<BH', self._data[offset:offset + 3])
@@ -128,7 +131,7 @@ class MessageParser:
                 msg_endidx = msg._data_size + (1 if with_version_byte else 0)  # 1 is a byte for message version (no version byte in TCP connections)
                 if data_len < msg_endidx:
                     # handling of short message
-                    self.logger.error("return, received data %d is smaller than data length in header %d", data_len, msg_endidx)
+                    self.logger.error("return, received data %d is smaller than data length in header %d" % (data_len, msg_endidx))
                     return msg_list
                 (msg.seqnr, ) = struct.unpack('<H', self._data[msg_endidx - 2:msg_endidx])
                 offset += 9

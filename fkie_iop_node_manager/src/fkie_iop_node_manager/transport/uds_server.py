@@ -20,7 +20,6 @@
 
 from __future__ import division, absolute_import, print_function, unicode_literals
 
-import logging
 import os
 import threading
 import time
@@ -32,6 +31,7 @@ from .net import is_local_iface
 from .uds import UDSSocket
 from .udp_mc import UDPmcSocket
 from .udp_uc import UDPucSocket
+from fkie_iop_node_manager.logger import NMLogger
 
 
 class UDSServer(object):
@@ -41,7 +41,8 @@ class UDSServer(object):
         self._cfg = cfg
         self._addrbook = addrbook
         self._statistics = statistics
-        self.logger = logging.getLogger('uds_server')
+        loglevel = self._cfg.param('global/loglevel', 'info')
+        self.logger = NMLogger('uds_server', loglevel)
         override_priority = cfg.param('priority/override', True)
         ormap = cfg.param('priority/map', {})
         self._priority_map = {}
@@ -69,14 +70,14 @@ class UDSServer(object):
         self.logger.info("Listen for local connections @%s" % (self._socket_path_server))
         if os.path.exists(self._socket_path_server):
             os.unlink(self._socket_path_server)
-        self._local_socket = UDSSocket(cfg.param('transport/local/nm_path'), remove_on_close=True, force_bind=True, root_path=self._root_path)
+        self._local_socket = UDSSocket(cfg.param('transport/local/nm_path'), remove_on_close=True, force_bind=True, root_path=self._root_path, loglevel=self._cfg.param('global/loglevel', 'info'))
         self._udp_looback = None
         self._udp_looback_dest = None
         if cfg.param('transport/loopback_debug/enable', False):
             self._init_loopback()
         # Listen for incoming connections
         self._router = router
-        self._queue_send = queue.PQueue(cfg.param('transport/local/queue_length', 0), 'queue_uds_send')
+        self._queue_send = queue.PQueue(cfg.param('transport/local/queue_length', 0), 'queue_uds_send', loglevel=loglevel)
         self._thread_send = threading.Thread(target=self._loop_handle_send_queue)
         self._thread_send.start()
         self._thread_recv = threading.Thread(target=self._loop_recv_local_socket)
@@ -93,14 +94,14 @@ class UDSServer(object):
             if is_local_iface(address):
                 # create a receive socket to avoid ICMP messages with 'port unreachable'
                 self.logger.info("Loopback destination is local address, create receive socket ")
-                self._udp_looback_dest = UDPucSocket(interface=address, port=port, logger_name='loopback_recv', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length)
+                self._udp_looback_dest = UDPucSocket(interface=address, port=port, logger_name='loopback_recv', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
                 self._udp_looback = UDPucSocket(interface=address, logger_name='loopback', default_dst=(address, port))
             else:
-                self._udp_looback = UDPucSocket(port=port, logger_name='loopback', default_dst=(address, port), send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length)
+                self._udp_looback = UDPucSocket(port=port, logger_name='loopback', default_dst=(address, port), send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
         else:
             interface = self._cfg.param('transport/loopback_debug/interface', '')
             mgroup = self._cfg.param('transport/loopback_debug/group', '239.255.0.1')
-            self._udp_looback = UDPmcSocket(port, mgroup, ttl=1, interface=interface, logger_name='loopback_mc', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length)
+            self._udp_looback = UDPmcSocket(port, mgroup, ttl=1, interface=interface, logger_name='loopback_mc', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
 
     def _close_loopback(self):
         if self._udp_looback is not None:
@@ -147,7 +148,7 @@ class UDSServer(object):
                         if not ok:
                             failed.append(msg.dst_id)
         if not found and self._local_sockets:
-            self.logger.debug("No UDS destination found for: %d, seqnr: %d" % (msg.dst_id, msg.seqnr))
+            self.logger.debug("No UDS destination found for: %s, seqnr: %d" % (msg.dst_id, msg.seqnr))
             not_found.append(msg.dst_id)
         return failed, not_found
 
@@ -193,7 +194,8 @@ class UDSServer(object):
                             dest_sock.send_msg(resp)
                         resp.ts_receive = time.time()
                         resp.tinfo_src = AddressBook.Endpoint(AddressBook.Endpoint.UDS, self._local_socket.socket_path)
-                        resp.tinfo_dst = AddressBook.Endpoint(AddressBook.Endpoint.UDS, dest_sock.socket_path)
+                        if dest_sock is not None:
+                            resp.tinfo_dst = AddressBook.Endpoint(AddressBook.Endpoint.UDS, dest_sock.socket_path)
                         self._statistics.add(resp)
                     elif msg.cmd_code == Message.CODE_CANCEL:
                         # Disconnect client.
@@ -328,7 +330,7 @@ class UDSServer(object):
         if dst_id not in self._local_sockets:
             try:
                 self.logger.debug("Create local socket connection to %s" % dst_id)
-                sock = UDSSocket('%d' % dst_id.value, root_path=self._root_path, recv_buffer=self._recv_buffer)
+                sock = UDSSocket('%d' % dst_id.value, root_path=self._root_path, recv_buffer=self._recv_buffer, loglevel=self._cfg.param('global/loglevel', 'info'))
                 self._local_sockets[dst_id] = sock
                 self._addrbook.add_jaus_address(dst_id, sock.socket_path, port=None, ep_type=AddressBook.Endpoint.UDS)
             except Exception as connerr:
