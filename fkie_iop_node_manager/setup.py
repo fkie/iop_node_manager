@@ -19,6 +19,10 @@ try:
    setup(**d)
 except ImportError:
    # install without catkin
+   from sys import version_info
+   ruamel_name = 'python-ruamel.yaml'
+   if version_info[0] > 2:
+      ruamel_name = 'python2-ruamel.yaml'
    setup(name='IOP Node Manager',
          version='0.9.0',
          license='Apache-2.0',
@@ -26,7 +30,7 @@ except ImportError:
          author='Alexander Tiderko',
          author_email='alexander.tiderko@fkie.fraunhofer.de',
          url='https://github.com/fkie/iop_node_manager',
-         install_requires=['python-ruamel.yaml'],
+         install_requires=[ruamel_name],
          scripts=scripts,
          packages=packages,
          package_dir=package_dir
