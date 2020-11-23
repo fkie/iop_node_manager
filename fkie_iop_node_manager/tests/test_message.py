@@ -18,6 +18,7 @@
 #
 # ****************************************************************************
 
+import sys
 import os
 import unittest
 
@@ -49,7 +50,10 @@ class TestMessageLib(unittest.TestCase):
         msg.src_id = JausAddress.from_string('150.64.200')
         msg.dst_id = JausAddress.from_string('65535.255.255')
         msg.payload = b'\x00+\x04'
-        self.assertEqual(self.msg_query_identification, msg.bytes(), "wrong QueryIdentification serialization, expected: %s, got: %s" % ([ord(char) for char in self.msg_query_identification], [ord(char) for char in msg.bytes()]))
+        if sys.version_info[0] > 2:
+            self.assertEqual(self.msg_query_identification, msg.bytes(), "wrong QueryIdentification serialization, expected: %s, got: %s" % ([char for char in self.msg_query_identification], [char for char in msg.bytes()]))
+        else:
+            self.assertEqual(self.msg_query_identification, msg.bytes(), "wrong QueryIdentification serialization, expected: %s, got: %s" % ([ord(char) for char in self.msg_query_identification], [ord(char) for char in msg.bytes()]))
         try:
             '%s' % msg
         except Exception as err:
@@ -64,7 +68,10 @@ class TestMessageLib(unittest.TestCase):
         msg.seqnr = 0
         msg.src_id = JausAddress.from_string('1.1.3')
         msg.dst_id = JausAddress.from_string('0.0.0')
-        self.assertEqual(self.msg_connect, msg.bytes(), "wrong V1 connect message serialization, expected: %s, got: %s" % ([ord(char) for char in self.msg_connect], [ord(char) for char in msg.bytes()]))
+        if sys.version_info[0] > 2:
+            self.assertEqual(self.msg_connect, msg.bytes(), "wrong V1 connect message serialization, expected: %s, got: %s" % ([char for char in self.msg_connect], [char for char in msg.bytes()]))
+        else:
+            self.assertEqual(self.msg_connect, msg.bytes(), "wrong V1 connect message serialization, expected: %s, got: %s" % ([ord(char) for char in self.msg_connect], [ord(char) for char in msg.bytes()]))
         try:
             '%s' % msg
         except Exception as err:

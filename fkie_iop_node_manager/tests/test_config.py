@@ -93,7 +93,7 @@ class TestConfigLib(unittest.TestCase):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect(('localhost', 54321))
-            sock.sendall('global/reset: True\n', socket.MSG_DONTWAIT)
+            sock.sendall(b'global/reset: True\n', socket.MSG_DONTWAIT)
             sock.close()
         except Exception as err:
             print("WARNIG: failure while send parameter: %s" % err)
