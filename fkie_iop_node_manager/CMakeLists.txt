@@ -10,7 +10,7 @@ catkin_python_setup()
 catkin_package(
 )
 
-install(
+catkin_install_python(
     PROGRAMS 
         scripts/iopeval.py
         scripts/iopnodemanager.py
