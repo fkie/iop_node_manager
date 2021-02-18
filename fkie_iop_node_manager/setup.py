@@ -1,37 +1,34 @@
-#!/usr/bin/env python
+from setuptools import setup
 
-from distutils.core import setup
+package_name = 'fkie_iop_node_manager'
 
-scripts=['scripts/iopnodemanager.py', 'scripts/iopparam.py', 'scripts/iopeval.py', 'scripts/rosiopnodemanager.py']
-packages=['fkie_iop_node_manager', 'fkie_iop_node_manager.statistics', 'fkie_iop_node_manager.transport']
-package_dir={'': 'src'}
-
-try:
-   from catkin_pkg.python_setup import generate_distutils_setup
-
-   d = generate_distutils_setup(
-      ##  don't do this unless you want a globally visible script
-      scripts=scripts,
-      packages=packages,
-      package_dir=package_dir
-   )
-
-   setup(**d)
-except ImportError:
-   # install without catkin
-   from sys import version_info
-   ruamel_name = 'python-ruamel.yaml'
-   if version_info[0] > 2:
-      ruamel_name = 'python2-ruamel.yaml'
-   setup(name='IOP Node Manager',
-         version='0.9.0',
-         license='Apache-2.0',
-         description='IOP Node Manager - Python router for IOP messages.',
-         author='Alexander Tiderko',
-         author_email='alexander.tiderko@fkie.fraunhofer.de',
-         url='https://github.com/fkie/iop_node_manager',
-         install_requires=[ruamel_name],
-         scripts=scripts,
-         packages=packages,
-         package_dir=package_dir
-   )
+setup(
+   name=package_name,
+   version='0.9.0',
+   packages=[package_name, package_name + '.statistics', package_name + '.transport'],
+   data_files=[
+         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
+#         ('share/' + package_name + '/launch', ['launch/autostart.launch.xml']),
+         ('share/' + package_name, ['package.xml']),
+      ],
+   install_requires=['setuptools', 'ruamel.yaml'],
+   zip_safe=True,
+   maintainer='Alexander Tiderko',
+   maintainer_email='Alexander.Tiderko@fkie.fraunhofer.de',
+   description='A daemon node to manage ROS launch files and launch nodes from loaded files.',
+   license='Apache License, Version 2.0',
+   url='https://github.com/fkie/ros_node_manager',
+   tests_require=['pytest'],
+   test_suite="tests",
+   entry_points={
+      'console_scripts': [
+         'rosiopnodemanager.py ='
+         ' fkie_iop_node_manager:main',
+      ],
+   },
+   scripts = [
+      'scripts/iopeval.py',
+      'scripts/iopnodemanager.py',
+      'scripts/iopparam.py'
+   ]
+)

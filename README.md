@@ -27,13 +27,13 @@ The Node Manager provides also an interface to change logging and statistics at 
 Clone this repository to your preffered destination.
 
 - If you use it with ROS put this repository into ROS workspace and call  
-`catkin build`
+`colcon build`
 
 - **Without** ROS support you can use setup.py to install the code:
 
   ```console
   cd iop_node_manager/fkie_iop_node_manager
-  python setup.py install --user --record installed_files.txt
+  python3 setup.py install --user --record installed_files.txt
   ```
 
   The executables are now located in `~/.local/bin`.
@@ -49,7 +49,7 @@ Clone this repository to your preffered destination.
 Use **rosiopnodemanager.py** to launch Node Manager as a ROS-Node:
 
 ```console
-rosrun fkie_iop_node_manager rosiopnodemanager.py
+ros2 run fkie_iop_node_manager rosiopnodemanager.py
 ```
 
 Or you use **iopnodemanager.py** to start Node Manager as standalone script:
@@ -63,13 +63,13 @@ Or you use **iopnodemanager.py** to start Node Manager as standalone script:
 Using this script you can change parameter during the runtime, e.g. change log level or enable/disable statistics output.
 
 ```console
-rosrun fkie_iop_node_manager iopparam.py --loglevel debug
+ros2 run fkie_iop_node_manager iopparam.py --loglevel debug
 ```
 
 or
 
 ```console
-rosrun fkie_iop_node_manager iopparam.py --statistic true
+ros2 run fkie_iop_node_manager iopparam.py --statistic true
 ```
 
 ### `iopeval.py`
@@ -77,7 +77,7 @@ rosrun fkie_iop_node_manager iopparam.py --statistic true
 Analyse the output located in `~/.iop/statistics/last.msgs` and create statistics specified by parameter.
 
 ```console
-rosrun fkie_iop_node_manager iopeval.py connections ~/.iop/statistics/last.msgs
+ros2 run fkie_iop_node_manager iopeval.py connections ~/.iop/statistics/last.msgs
 ```
 
 > Statistics output in Node Manager should be enabled!  

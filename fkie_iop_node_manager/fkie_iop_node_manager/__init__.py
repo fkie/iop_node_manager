@@ -103,3 +103,35 @@ def shutdown():
     global server
     server.shutdown()
     print("Bye")
+
+
+def main(args=None):
+    try:
+        import rclpy
+        from rclpy.node import Node
+        class DummyNode(Node):
+            def __init__(self):
+                super().__init__("iop_node_manager")
+
+        rclpy.init(args=args)
+        node = DummyNode()
+        #rospy.names.reload_mappings(sys.argv)
+        #mappings = rospy.names.get_mappings()
+        #name = "iop_node_manager"
+        #if '__name' in mappings:
+        #    name = mappings['__name']
+        # params = rospy.get_param(rosgraph.names.resolve_name(name, rospy.core.get_caller_id()), {})
+        # start(name, block=False, params=params)
+        start(node.get_name(), block=False)
+        rclpy.spin(node)
+    except Exception as err:
+        import traceback
+        print(traceback.format_exc())
+        print("Error while initialize ROS-Node: %s" % (err), file=sys.stderr)
+    finally:
+        try:
+            shutdown()
+            node.destroy_node()
+            rclpy.shutdown()
+        except Exception:
+            pass
