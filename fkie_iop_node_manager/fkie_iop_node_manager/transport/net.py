@@ -77,8 +77,8 @@ def localifs():
                                                    SIOCGIFCONF,
                                                    struct.pack('iL', MAXBYTES, names.buffer_info()[0])
                                                    ))[0]
-        namestr = names.tostring()
-        return [(namestr[i:i + var1].split('\0', 1)[0], socket.inet_ntoa(namestr[i + 20:i + 24])) for i in range(0, outbytes, var2)]
+        namestr = names.tobytes()
+        return [(namestr[i:i + var1].split(b'\0', 1)[0], socket.inet_ntoa(namestr[i + 20:i + 24])) for i in range(0, outbytes, var2)]
 
 
 def is_local_iface(ip):
