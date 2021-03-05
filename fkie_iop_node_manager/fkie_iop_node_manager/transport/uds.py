@@ -108,5 +108,10 @@ class UDSSocket(socket.socket):
         try:
             val = self.send(msg.bytes())
             return val == msg.raw_size
+        except OSError as ose:
+            if ose.errno == 107:
+                raise ose
+            else:
+                self.logger.warning("Error while send message [len: %d]: %s" % (len(msg.bytes()), e))
         except Exception as e:
             self.logger.warning("Error while send message [len: %d]: %s" % (len(msg.bytes()), e))

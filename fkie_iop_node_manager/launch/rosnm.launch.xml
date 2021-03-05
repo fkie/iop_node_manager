@@ -1,0 +1,3 @@
+<launch>
+  <node name="iop_node_manager" pkg="fkie_iop_node_manager" exec="rosiopnodemanager.py" />
+</launch>

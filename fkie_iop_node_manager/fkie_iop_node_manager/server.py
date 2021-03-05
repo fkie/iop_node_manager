@@ -64,9 +64,9 @@ class Server():
         buffer_size = self.cfg.param('transport/udp/buffer_size', 0)
         queue_length = self.cfg.param('transport/udp/queue_length', 0)
         if use_mcast:
-            self._udp = UDPmcSocket(port, mgroup, router=self, ttl=ttl, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level())
+            self._udp = UDPmcSocket(port, mgroup, router=self, addrbook=self.addrbook, ttl=ttl, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level())
         else:
-            self._udp = UDPucSocket(port, router=self, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level())
+            self._udp = UDPucSocket(port, router=self, addrbook=self.addrbook, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level())
         # create TCP server
         tcp_enabled = self.cfg.param('transport/tcp/enable', False)
         self._tcp_server = None
@@ -98,7 +98,7 @@ class Server():
                     self.logger.debug("send 0x%.4X unicast from %s to %s (%s)" % (msg.msg_id, msg.src_id, msg.dst_id, msg.tinfo_dst))
                     if msg.tinfo_dst.etype == AddressBook.Endpoint.UDS:
                         self._local_mngr.send_queued(msg)
-                    elif msg.tinfo_dst.etype == AddressBook.Endpoint.UDP:
+                    elif msg.tinfo_dst.etype in [AddressBook.Endpoint.UDP, AddressBook.Endpoint.UDP_LOCAL]:
                         # send through UDP socket
                         self._udp.send_queued(msg)
                     elif msg.tinfo_dst.etype == AddressBook.Endpoint.TCP:
@@ -129,11 +129,15 @@ class Server():
 
     def route_udp_msg(self, msg):
         try:
-            self.addrbook.add(msg)
+            add_to_statistics = True
+            if msg.tinfo_src.etype != AddressBook.Endpoint.UDP_LOCAL:
+                self.addrbook.add(msg)
             if msg.dst_id.has_wildcards():
                 # it is a broadcast message, try send to all matched locals (except sender)
                 self.logger.debug("send 0x%.4X broadcast from %s" % (msg.msg_id, msg.src_id))
                 self._local_mngr.send_queued(msg)
+                self.route_local_msg(msg)
+                add_to_statistics = False
                 msg.forward = True
             else:
                 # it is an unique id, search in address book for receiver
@@ -142,8 +146,29 @@ class Server():
                     if msg.tinfo_dst.etype == AddressBook.Endpoint.UDS:
                         self._local_mngr.send_queued(msg)
                         msg.forward = True
+                    else:
+                        self.route_local_msg(msg)
+                        add_to_statistics = False
                     # TODO: forward message to TCP?
-            self.statistics.add(msg)
+                elif msg.tinfo_src.etype == AddressBook.Endpoint.UDP_LOCAL:
+                    # no receiver found
+                    # do not send every message to not known receiver
+                    ts = 0
+                    if msg.dst_id in self._on_discover:
+                        ts = self._on_discover[msg.dst_id]
+                    ts_cur = time.time()
+                    if ts_cur - ts > 1:
+                        # try to find the receiver -> send as broadcast with ACK requested
+                        self.logger.debug("%s not found, try to discover, send as broadcast with ACK requested" % msg.dst_id)
+                        msg.acknak = 1
+                        msg.tinfo_dst = None
+                        self._udp.send_queued(msg)
+                        if self._tcp_server is not None:
+                            self._tcp_server.send_queued(msg)
+                        self._on_discover[msg.dst_id] = ts_cur
+                        msg.forward = True
+            if add_to_statistics:
+                self.statistics.add(msg)
         except Exception as err:
             print("ERROR", err)
 

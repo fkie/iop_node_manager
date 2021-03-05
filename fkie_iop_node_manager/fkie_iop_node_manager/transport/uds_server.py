@@ -95,13 +95,13 @@ class UDSServer(object):
                 # create a receive socket to avoid ICMP messages with 'port unreachable'
                 self.logger.info("Loopback destination is local address, create receive socket ")
                 self._udp_looback_dest = UDPucSocket(interface=address, port=port, logger_name='loopback_recv', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
-                self._udp_looback = UDPucSocket(interface=address, logger_name='loopback', default_dst=(address, port))
+                self._udp_looback = UDPucSocket(addrbook=self._addrbook, interface=address, logger_name='loopback', default_dst=(address, port))
             else:
-                self._udp_looback = UDPucSocket(port=port, logger_name='loopback', default_dst=(address, port), send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
+                self._udp_looback = UDPucSocket(addrbook=self._addrbook, port=port, logger_name='loopback', default_dst=(address, port), send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
         else:
             interface = self._cfg.param('transport/loopback_debug/interface', '')
             mgroup = self._cfg.param('transport/loopback_debug/group', '239.255.0.1')
-            self._udp_looback = UDPmcSocket(port, mgroup, ttl=1, interface=interface, logger_name='loopback_mc', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
+            self._udp_looback = UDPmcSocket(port, mgroup, addrbook=self._addrbook, ttl=1, interface=interface, logger_name='loopback_mc', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
 
     def _close_loopback(self):
         if self._udp_looback is not None:
@@ -200,6 +200,7 @@ class UDSServer(object):
                     elif msg.cmd_code == Message.CODE_CANCEL:
                         # Disconnect client.
                         self.logger.debug("Disconnect request from %s" % msg.src_id)
+                        print("***Disconnect request")
                         self.remove_local_socket(msg.src_id)
                 except Exception as e:
                     import traceback
@@ -314,6 +315,11 @@ class UDSServer(object):
                         #     if failed:
                         #         print("  still failed, skip seqnr: %d, %s" % (msg.seqnr, failed))
                         pass
+                except OSError as ose:
+                    if ose.errno == 107:
+                        self._addrbook.remove(msg.dst_id)
+                    else:
+                        self.logger.warning("Error while forward external message: %s" % ose)
                 except Exception as e:
                     import traceback
                     print(traceback.format_exc())

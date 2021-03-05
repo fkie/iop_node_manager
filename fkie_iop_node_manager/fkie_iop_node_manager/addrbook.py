@@ -18,18 +18,19 @@
 #
 # ****************************************************************************
 
-from __future__ import division, absolute_import, print_function, unicode_literals
+from typing import List
 
 from .jaus_address import JausAddress
 from fkie_iop_node_manager.logger import NMLogger
 
 
-class AddressBook():
+class AddressBook:
 
     class Endpoint:
         UDS = 0
         UDP = 1
         TCP = 2
+        UDP_LOCAL = 3
 
         def __init__(self, etype, address='', port=None):
             self.etype = etype
@@ -47,6 +48,8 @@ class AddressBook():
                 result = 'UDP'
             elif self.etype == self.TCP:
                 result = 'TCP'
+            elif self.etype == self.UDP_LOCAL:
+                result = 'UDP_LOCAL'
             return result
 
         def address_str(self):
@@ -83,6 +86,8 @@ class AddressBook():
         etype_str = 'None'
         if etype == AddressBook.Endpoint.UDP:
             etype_str = 'UDP'
+        if etype == AddressBook.Endpoint.UDP_LOCAL:
+            etype_str = 'UDP_LOCAL'
         elif etype == AddressBook.Endpoint.TCP:
             etype_str = 'TCP'
         result = []
@@ -170,6 +175,14 @@ class AddressBook():
         if not jaus_address.has_wildcards():
             if jaus_address in self._map:
                 try:
+                    self.logger.info("Remove endpoint for %s: %s" % (jaus_address, self._map[jaus_address]))
                     del self._map[jaus_address]
                 except KeyError as err:
                     self.logger.warning("Can not remove %s: %s" % (jaus_address, err))
+
+    def get_local_udp_destinations(self) -> List[Endpoint]:
+        result = []
+        for _jaus_address, endpoint in self._map.items():
+            if endpoint.etype == AddressBook.Endpoint.UDP_LOCAL:
+                result.append(endpoint)
+        return result

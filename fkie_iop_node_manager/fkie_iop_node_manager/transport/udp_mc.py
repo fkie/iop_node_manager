@@ -24,11 +24,13 @@ import errno
 import socket
 import struct
 import threading
+import time
 import traceback
 
 import fkie_iop_node_manager.queue as queue
 from fkie_iop_node_manager.addrbook import AddressBook
 from fkie_iop_node_manager.message_parser import MessageParser
+from fkie_iop_node_manager.message import Message
 from .net import getaddrinfo, localifs
 from fkie_iop_node_manager.logger import NMLogger
 
@@ -42,7 +44,7 @@ class UDPmcSocket(socket.socket):
     'send_mcast' and 'listen_mcast' parameter are set to False or a specific interface is defined.
     '''
 
-    def __init__(self, port, mgroup, router=None, ttl=16, interface='', logger_name='udp_mc', send_buffer=0, recv_buffer=0, queue_length=0, loglevel='info'):
+    def __init__(self, port, mgroup, router=None, addrbook=None, ttl=16, interface='', logger_name='udp_mc', send_buffer=0, recv_buffer=0, queue_length=0, loglevel='info'):
         '''
         Creates a socket, bind it to a given port and join to a given multicast
         group. IPv4 and IPv6 are supported.
@@ -57,6 +59,7 @@ class UDPmcSocket(socket.socket):
         self.logger = NMLogger('%s[%s:%d]' % (logger_name, mgroup.replace('.', '_'), port), loglevel)
         self.port = port
         self.mgroup = mgroup
+        self._addrbook = addrbook
         self._lock = threading.RLock()
         self._closed = False
         self._recv_buffer = recv_buffer
@@ -188,18 +191,23 @@ class UDPmcSocket(socket.socket):
             msg = self._queue_send.get()
             if msg is not None:
                 dst = msg.tinfo_dst
-                if dst is None:  # or msg.dst_id.has_wildcards():
-                    dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP, self.mgroup, self.getsockname()[1])
-                if dst is not None:
+                if dst is None:
+                    if msg.tinfo_src.etype == AddressBook.Endpoint.UDP_LOCAL:
+                        self._sendto(msg, AddressBook.Endpoint(AddressBook.Endpoint.UDP, self.mgroup, self.getsockname()[1]))
+                    # send to local clients through UDP connections
+                    for local_dst in self._addrbook.get_local_udp_destinations():
+                        if local_dst != msg.tinfo_src:
+                            self._sendto(msg, local_dst)
+                elif msg.tinfo_dst.etype in [AddressBook.Endpoint.UDP, AddressBook.Endpoint.UDP_LOCAL]:
                     self._sendto(msg, dst)
-                else:
-                    self.logger.warning("Can't send message to %s, destination not found!" % (dst))
+                #else:
+                #    self.logger.warning("Can't send message to %s, destination not found!" % (dst))
                 # TODO: add retry mechanism
 
     def _sendto(self, msg, endpoint):
         # send to given addresses
         try:
-            # self.logger.debug("Send to %s:%d" % (endpoint.address, endpoint.port))
+            self.logger.debug("Send to %s:%d" % (endpoint.address, endpoint.port))
             val = self.sendto(msg.bytes(), (endpoint.address, endpoint.port))
             if val != msg.raw_size:
                 raise Exception("not complete send %d of %d" % (val, msg.raw_size))
@@ -229,17 +237,44 @@ class UDPmcSocket(socket.socket):
         while not self._closed:
             try:
                 (data, address) = self.recvfrom(self._recv_buffer)
-                if data and not self._closed and address[0] not in self._locals:  # skip messages received from self
+                if data and not self._closed and not (address[0] in self._locals and self.port == address[1]):  # skip messages received from self
                     msgs = self._parser_mcast.unpack(data)
                     for msg in msgs:
-                        try:
-                            msg.tinfo_src = self._sender_endpoints[address]
-                        except KeyError:
-                            endpoint = AddressBook.Endpoint(AddressBook.Endpoint.UDP, address[0], address[1])
-                            msg.tinfo_src = endpoint
-                            self._sender_endpoints[address] = endpoint
-                        # self.logger.debug("Received from %s" % (msg.tinfo_src))
-                        self._router.route_udp_msg(msg)
+                        if msg.dst_id.zero or msg.cmd_code > 0:
+                            # handle connection requests/closing
+                            try:
+                                if msg.cmd_code == Message.CODE_CONNECT:
+                                    # Connection request from client.
+                                    self.logger.debug("Connection request from %s" % msg.src_id)
+                                    resp = Message()
+                                    resp.version = Message.AS5669
+                                    resp.dst_id = msg.src_id
+                                    resp.cmd_code = Message.CODE_ACCEPT
+                                    resp.ts_receive = time.time()
+                                    resp.tinfo_src = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, self.mgroup, self.getsockname()[1])
+                                    resp.tinfo_dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, address[0], address[1])
+                                    self._addrbook.add_jaus_address(msg.src_id, address=address[0], port=address[1], ep_type=AddressBook.Endpoint.UDP_LOCAL)
+                                    self.send_queued(resp)
+                                elif msg.cmd_code == Message.CODE_CANCEL:
+                                    # Disconnect client.
+                                    self.logger.debug("Disconnect request from %s" % msg.src_id)
+                                    self._addrbook.remove(msg.src_id)
+                            except Exception as e:
+                                import traceback
+                                print(traceback.format_exc())
+                                self.logger.warning("Error while handle connection management message: %s" % e)
+                        else:
+                            try:
+                                msg.tinfo_src = self._sender_endpoints[address]
+                            except KeyError:
+                                etype = AddressBook.Endpoint.UDP
+                                if address[0] in self._locals:
+                                    etype = AddressBook.Endpoint.UDP_LOCAL
+                                endpoint = AddressBook.Endpoint(etype, address[0], address[1])
+                                msg.tinfo_src = endpoint
+                                self._sender_endpoints[address] = endpoint
+                            # self.logger.debug("Received from %s" % (msg.tinfo_src))
+                            self._router.route_udp_msg(msg)
             except socket.timeout:
                 pass
             except queue.Full as full_error:
