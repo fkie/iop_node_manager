@@ -189,6 +189,9 @@ class Server():
             else:
                 # it is an unique id, search in address book for receiver
                 if self.addrbook.apply_destination(msg):
+                    if (msg.tinfo_src == msg.tinfo_dst):
+                        # skip messages with equal source and destination
+                        return
                     self.logger.debug("send 0x%.4X unicast from %s to %s (%s)" % (msg.msg_id, msg.src_id, msg.dst_id, msg.tinfo_dst))
                     if msg.tinfo_dst.etype == AddressBook.Endpoint.UDS:
                         self._local_mngr.send_msg(msg)
