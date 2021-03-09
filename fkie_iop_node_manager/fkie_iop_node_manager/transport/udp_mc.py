@@ -270,7 +270,7 @@ class UDPmcSocket(socket.socket):
                                 etype = AddressBook.Endpoint.UDP
                                 if address[0] in self._locals:
                                     etype = AddressBook.Endpoint.UDP_LOCAL
-                                endpoint = AddressBook.Endpoint(etype, address[0], address[1])
+                                endpoint = AddressBook.Endpoint(etype, address=address[0], port=address[1])
                                 msg.tinfo_src = endpoint
                                 self._sender_endpoints[address] = endpoint
                             # self.logger.debug("Received from %s" % (msg.tinfo_src))
