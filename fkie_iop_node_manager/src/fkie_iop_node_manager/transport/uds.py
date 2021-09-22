@@ -68,7 +68,7 @@ class UDSSocket(socket.socket):
         Close the socket.
         '''
         self._closed = True
-        self.logger.info("Close socket")
+        self.logger.info("Close socket [%s]" % self._socket_path)
         self.shutdown(socket.SHUT_RDWR)
         socket.socket.close(self)
         if self._remove_on_close:

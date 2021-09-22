@@ -94,7 +94,7 @@ class Config:
     def close(self):
         self._stop = True
         if self._cfgif is not None:
-            self.logger.info("Close configuration socket")
+            self.logger.info("Close configuration socket [%s:%d]" % self._cfgif_address)
             try:
                 # we call socket.SHUT_RDWR to cancel bloking recv method
                 self._cfgif.shutdown(socket.SHUT_RD)

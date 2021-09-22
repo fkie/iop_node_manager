@@ -169,21 +169,29 @@ class Server():
 
     def shutdown(self):
         print('shutdown server')
-        self.cfg.close()
-        print('  stop statisctics')
-        self.statistics.stop()
+        try:
+            self.cfg.close()
+        except Exception as err:
+            print("Exception while close configuration interface: ", err)
+        try:
+            self.statistics.stop()
+        except Exception as err:
+            print("Exception while close statistics interface: ", err)
         self._stop = True
         if self._udp is not None:
-            print('  close udp sockets')
-            self._udp.close()
-            print('  ... udp closed')
+            try:
+                self._udp.close()
+            except Exception as err:
+                print("Exception while close udp interfaces: ", err)
         if self._local_mngr is not None:
-            print('  close local mngr sockets')
-            self._local_mngr.stop()
-            print('  ... local mngr closed')
+            try:
+                self._local_mngr.stop()
+            except Exception as err:
+                print("Exception while stopping local manager: ", err)
         if self._tcp_server is not None:
-            print('  close tcp sockets')
-            self._tcp_server.close()
-            print('  ... tcp closed')
-            self._tcp_server = None
+            try:
+                self._tcp_server.close()
+                self._tcp_server = None
+            except Exception as err:
+                print("Exception while close tcp interfaces: ", err)
         print('  ... server stopped')
