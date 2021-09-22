@@ -168,13 +168,22 @@ class Server():
             print("ERROR", err)
 
     def shutdown(self):
+        print('shutdown server')
         self.cfg.close()
+        print('  stop statisctics')
         self.statistics.stop()
         self._stop = True
         if self._udp is not None:
+            print('  close udp sockets')
             self._udp.close()
+            print('  ... udp closed')
         if self._local_mngr is not None:
+            print('  close local mngr sockets')
             self._local_mngr.stop()
+            print('  ... local mngr closed')
         if self._tcp_server is not None:
+            print('  close tcp sockets')
             self._tcp_server.close()
+            print('  ... tcp closed')
             self._tcp_server = None
+        print('  ... server stopped')
