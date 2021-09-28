@@ -24,7 +24,4 @@ except Exception as err:
     print(traceback.format_exc())
     print("Error while initialize ROS-Node: %s" % (err), file=sys.stderr)
 finally:
-    try:
-        fkie_iop_node_manager.shutdown()
-    except Exception:
-        pass
+    fkie_iop_node_manager.shutdown()

@@ -160,7 +160,7 @@ class UDPmcSocket(socket.socket):
         Unregister from the multicast group and close the socket.
         '''
         self._closed = True
-        self.logger.info("Close multicast socket")
+        self.logger.info("Close multicast socket [%s:%d]" % (self.mgroup, self.port))
         try:
             # shutdown to cancel recvfrom()
             socket.socket.shutdown(self, socket.SHUT_RD)

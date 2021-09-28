@@ -81,7 +81,7 @@ class TCPServer(socket.socket):
 
     def close(self):
         self._closed = True
-        self.logger.info("Close socket")
+        self.logger.info("Close TCP socket [%s:%d]" % (self.interface, self.port))
         self.logger.debug("Close %s clients: %s" % (len(self._clients), str(self._clients)))
         for _dst, conn in self._clients.items():
             conn.close()
