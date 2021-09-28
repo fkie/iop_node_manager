@@ -32,7 +32,7 @@ def send_parameter(params, host='localhost', port=37940):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((host, port))
-        sock.sendall(params, socket.MSG_DONTWAIT)
+        sock.sendall(params.encode(), socket.MSG_DONTWAIT)
         sock.shutdown(socket.SHUT_RD)
         sock.close()
         print("parameter sent successfully")
