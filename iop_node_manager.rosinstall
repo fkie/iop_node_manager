@@ -2,4 +2,4 @@
 - git:
     local-name: iop_node_manager
     uri: https://github.com/fkie/iop_node_manager
-    version: foxy-devel
+    version: ros2
