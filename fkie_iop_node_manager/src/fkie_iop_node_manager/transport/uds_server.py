@@ -101,7 +101,8 @@ class UDSServer(object):
         else:
             interface = self._cfg.param('transport/loopback_debug/interface', '')
             mgroup = self._cfg.param('transport/loopback_debug/group', '239.255.0.1')
-            self._udp_looback = UDPmcSocket(port, mgroup, ttl=1, interface=interface, logger_name='loopback_mc', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level())
+            rejoin_mc = self.cfg.param('transport/loopback_debug/rejoin_after', 0)
+            self._udp_looback = UDPmcSocket(port, mgroup, ttl=1, interface=interface, logger_name='loopback_mc', send_buffer=buffer_size, recv_buffer=self._recv_buffer, queue_length=queue_length, loglevel=self.logger.level(), rejoin_mc=rejoin_mc)
 
     def _close_loopback(self):
         if self._udp_looback is not None:

@@ -42,7 +42,7 @@ class UDPmcSocket(socket.socket):
     'send_mcast' and 'listen_mcast' parameter are set to False or a specific interface is defined.
     '''
 
-    def __init__(self, port, mgroup, router=None, ttl=16, interface='', logger_name='udp_mc', send_buffer=0, recv_buffer=0, queue_length=0, loglevel='info'):
+    def __init__(self, port, mgroup, router=None, ttl=16, interface='', logger_name='udp_mc', send_buffer=0, recv_buffer=0, queue_length=0, loglevel='info', rejoin_mc=0):
         '''
         Creates a socket, bind it to a given port and join to a given multicast
         group. IPv4 and IPv6 are supported.
@@ -57,6 +57,7 @@ class UDPmcSocket(socket.socket):
         self.logger = NMLogger('%s[%s:%d]' % (logger_name, mgroup.replace('.', '_'), port), loglevel)
         self.port = port
         self.mgroup = mgroup
+        self._rejoin_mc = rejoin_mc
         self._lock = threading.RLock()
         self._closed = False
         self._recv_buffer = recv_buffer
@@ -66,9 +67,11 @@ class UDPmcSocket(socket.socket):
         self.sock_5_error_printed = []
         self.SOKET_ERRORS_NEEDS_RECONNECT = False
         self.interface = interface
+        self.group_bin = None
+        self._mc_timer = None
         # get the AF_INET information for group to ensure that the address family
         # of group is the same as for interface
-        addrinfo = getaddrinfo(self.mgroup)
+        self.addrinfo = addrinfo = getaddrinfo(self.mgroup)
         self.interface_ip = ''
         if self.interface:
             addrinfo = getaddrinfo(self.interface, addrinfo[0])
@@ -96,34 +99,7 @@ class UDPmcSocket(socket.socket):
             self.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, ttl_bin)
             self.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_LOOP, 1)
 
-        try:
-            if addrinfo[0] == socket.AF_INET:  # IPv4
-                # Create group_bin for de-register later
-                # Set socket options for multicast specific interface or general
-                if not self.interface_ip:
-                    self.group_bin = socket.inet_pton(socket.AF_INET, self.mgroup) + struct.pack('=I', socket.INADDR_ANY)
-                    self.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
-                                    self.group_bin)
-                else:
-                    self.group_bin = socket.inet_aton(self.mgroup) + socket.inet_aton(self.interface_ip)
-                    self.setsockopt(socket.IPPROTO_IP,
-                                    socket.IP_MULTICAST_IF,
-                                    socket.inet_aton(self.interface_ip))
-                    self.setsockopt(socket.IPPROTO_IP,
-                                    socket.IP_ADD_MEMBERSHIP,
-                                    self.group_bin)
-            else:  # IPv6
-                # Create group_bin for de-register later
-                # Set socket options for multicast
-                self.group_bin = socket.inet_pton(addrinfo[0], self.mgroup) + struct.pack('@I', socket.INADDR_ANY)
-                self.setsockopt(socket.IPPROTO_IPV6,
-                                socket.IPV6_JOIN_GROUP,
-                                self.group_bin)
-        except socket.error as errobj:
-            msg = str(errobj)
-            if errobj.errno in [errno.ENODEV]:
-                msg = "socket.error[%d]: %s,\nis multicast route set? e.g. sudo route add -net 224.0.0.0 netmask 224.0.0.0 eth0" % (errobj.errno, msg)
-            raise Exception(msg)
+        self._add_membergroup()
 
         # set buffer size if configured
         if send_buffer:
@@ -144,7 +120,6 @@ class UDPmcSocket(socket.socket):
         self._router = router
         self._queue_send = queue.PQueue(queue_length, 'queue_udp_send', loglevel=loglevel)
         self._parser_mcast = MessageParser(None, loglevel=loglevel)
-        self.addrinfo = addrinfo
         # create a thread to handle the received multicast messages
         if self._router is not None:
             self._thread_recv = threading.Thread(target=self._loop_recv)
@@ -152,24 +127,90 @@ class UDPmcSocket(socket.socket):
         self._thread_send = threading.Thread(target=self._loop_send)
         self._thread_send.start()
 
+    def _add_membergroup(self):
+        if self._closed:
+            return
+        try:
+            if self.group_bin is not None:
+                # Use the stored group_bin to de-register
+                if self.addrinfo[0] == socket.AF_INET:  # IPv4
+                    self.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, self.group_bin)
+                else:  # IPv6
+                    self.setsockopt(socket.IPPROTO_IPV6,
+                                    socket.IPV6_LEAVE_GROUP,
+                                    self.group_bin)
+        except Exception as errmsg:
+            self.logger.warning("Error while unregister from multicast group: %s" % errmsg)
+        try:
+            # Use the stored group_bin to de-register
+            if self.addrinfo[0] == socket.AF_INET:  # IPv4
+                # Create group_bin for de-register later
+                # Set socket options for multicast specific interface or general
+                if not self.interface_ip:
+                    self.group_bin = socket.inet_pton(socket.AF_INET, self.mgroup) + struct.pack('=I', socket.INADDR_ANY)
+                    self.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
+                                    self.group_bin)
+                else:
+                    self.group_bin = socket.inet_aton(self.mgroup) + socket.inet_aton(self.interface_ip)
+                    self.setsockopt(socket.IPPROTO_IP,
+                                    socket.IP_MULTICAST_IF,
+                                    socket.inet_aton(self.interface_ip))
+                    self.setsockopt(socket.IPPROTO_IP,
+                                    socket.IP_ADD_MEMBERSHIP,
+                                    self.group_bin)
+                self.logger.debug('Join IPv4 multicast %s ok' % self.mgroup)
+            else:  # IPv6
+                # Create group_bin for de-register later
+                # Set socket options for multicast
+                self.group_bin = socket.inet_pton(self.addrinfo[0], self.mgroup) + struct.pack('@I', socket.INADDR_ANY)
+                self.setsockopt(socket.IPPROTO_IPV6,
+                                socket.IPV6_LEAVE_GROUP,
+                                self.group_bin)
+                self.setsockopt(socket.IPPROTO_IPV6,
+                                socket.IPV6_JOIN_GROUP,
+                                self.group_bin)
+                self.logger.debug('Join IPv6 multicast %s ok' % self.mgroup)
+        except socket.error as errobj:
+            msg = str(errobj)
+            if errobj.errno in [errno.ENODEV]:
+                msg = "socket.error[%d]: %s,\nis multicast route set? e.g. sudo route add -net 224.0.0.0 netmask 224.0.0.0 eth0" % (errobj.errno, msg)
+                raise Exception(msg)
+            else:
+                self.logger.warning(msg)
+        except Exception as errjoin:
+            self.logger.warning(errjoin)
+        # workaround to rejoin multicast for networks with broken multicast
+        if self._rejoin_mc > 0:
+            self.logger.debug('Start timer for %f to rejoin multicast group' % self._rejoin_mc)
+            self._mc_timer = threading.Timer(self._rejoin_mc, self._add_membergroup)
+            self._mc_timer.setDaemon(True)
+            self._mc_timer.start()
+
     def close(self):
         '''
         Unregister from the multicast group and close the socket.
         '''
         self._closed = True
+        if self._mc_timer is not None:
+            self._mc_timer.cancel()
         self.logger.info("Close multicast socket [%s:%d]" % (self.mgroup, self.port))
         try:
             # shutdown to cancel recvfrom()
             socket.socket.shutdown(self, socket.SHUT_RD)
         except socket.error:
             pass
-        # Use the stored group_bin to de-register
-        if self.addrinfo[0] == socket.AF_INET:  # IPv4
-            self.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, self.group_bin)
-        else:  # IPv6
-            self.setsockopt(socket.IPPROTO_IPV6,
-                            socket.IPV6_LEAVE_GROUP,
-                            self.group_bin)
+        except Exception as errmsg:
+            self.logger.warning("Error while shutdown multicast socket: %s" % errmsg)
+        try:
+            # Use the stored group_bin to de-register
+            if self.addrinfo[0] == socket.AF_INET:  # IPv4
+                self.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, self.group_bin)
+            else:  # IPv6
+                self.setsockopt(socket.IPPROTO_IPV6,
+                                socket.IPV6_LEAVE_GROUP,
+                                self.group_bin)
+        except Exception as errmsg:
+            self.logger.warning("Error while unregister from multicast group: %s" % errmsg)
         socket.socket.close(self)
         self._queue_send.clear()
 

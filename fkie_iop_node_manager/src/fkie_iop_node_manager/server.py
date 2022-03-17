@@ -38,14 +38,14 @@ class Server():
 
     def __init__(self, cfg_file, version='', params={}):
         self.cfg = Config(cfg_file, version, params)
-        loglevel = self.cfg.param('global/loglevel', 'info')
-        self.logger = NMLogger('server', loglevel)
+        self.loglevel = self.cfg.param('global/loglevel', 'info')
+        self.logger = NMLogger('server', self.loglevel)
         self.cfg.init_cfgif()
         self._stop = False
         default_port = self.cfg.param('transport/udp/port', 3794)
         addrbook_udp = self.cfg.param('addrbook/udp', {})
         addrbook_tcp = self.cfg.param('addrbook/tcp', {})
-        self.addrbook = AddressBook(default_port=default_port, addrbook_udp=addrbook_udp, addrbook_tcp=addrbook_tcp, loglevel=loglevel)
+        self.addrbook = AddressBook(default_port=default_port, addrbook_udp=addrbook_udp, addrbook_tcp=addrbook_tcp, loglevel=self.loglevel)
         self.statistics = Collector(self.cfg)
         self._local_mngr = None
         self._udp = None
@@ -63,8 +63,9 @@ class Server():
         interface = self.cfg.param('transport/udp/interface', '')
         buffer_size = self.cfg.param('transport/udp/buffer_size', 0)
         queue_length = self.cfg.param('transport/udp/queue_length', 0)
+        rejoin_mc = self.cfg.param('transport/udp/rejoin_after', 180)
         if use_mcast:
-            self._udp = UDPmcSocket(port, mgroup, router=self, ttl=ttl, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level())
+            self._udp = UDPmcSocket(port, mgroup, router=self, ttl=ttl, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level(), rejoin_mc=rejoin_mc)
         else:
             self._udp = UDPucSocket(port, router=self, interface=interface, send_buffer=buffer_size, recv_buffer=self.cfg.RECV_BUFFER, queue_length=queue_length, loglevel=self.logger.level())
         # create TCP server
