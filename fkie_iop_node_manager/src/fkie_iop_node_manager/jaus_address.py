@@ -91,11 +91,11 @@ class JausAddress(object):
         '''
         if self == other:
             return True
-        if other.subsystem != 65535 and self.subsystem != other.subsystem:
+        if other.subsystem != 65535 and self.subsystem != 65535 and self.subsystem != other.subsystem:
             return False
-        if other.node != 255 and self.node != other.node:
+        if other.node != 255 and self.node != 255 and self.node != other.node:
             return False
-        if other.component != 255 and self.component != other.component:
+        if other.component != 255 and self.component != 255 and self.component != other.component:
             return False
         return True
 

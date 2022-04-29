@@ -233,10 +233,14 @@ class UDPmcSocket(socket.socket):
                 dst = msg.tinfo_dst
                 if dst is None:  # or msg.dst_id.has_wildcards():
                     dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP, self.mgroup, self.getsockname()[1])
-                if dst is not None:
                     self._sendto(msg, dst)
+                    # send to all addresses defined in the configuration of the address book
+                    for entry in self._router.addrbook.get_static_udp_entries(msg):
+                        self._sendto(msg, entry)
                 else:
-                    self.logger.warning("Can't send message to %s, destination not found!" % (dst))
+                    self._sendto(msg, dst)
+                if dst is None:
+                    self.logger.warning("Can't send message to %s, destination not found!" % (msg.dst_id))
                 # TODO: add retry mechanism
 
     def _sendto(self, msg, endpoint):

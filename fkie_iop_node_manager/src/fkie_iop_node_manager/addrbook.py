@@ -144,6 +144,13 @@ class AddressBook():
                     return True
         return False
 
+    def get_static_udp_entries(self, msg):
+        result = []
+        for jaus_id, entry in self._static_udp:
+            if msg.dst_id.match(jaus_id):
+                result.append(entry)
+        return result
+
     def add(self, msg):
         '''
         tinfo_src should be valid.

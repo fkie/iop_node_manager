@@ -130,6 +130,10 @@ class UDPucSocket(socket.socket):
                 if dst is not None:
                     # send to given addresses
                     self._sendto(msg.bytes(), dst.address, dst.port)
+                else:
+                    # send to all addresses defined in the configuration of the address book
+                    for entry in self._router.addrbook.get_static_udp_entries(msg):
+                        self._sendto(msg, entry)
             # TODO: add retry mechanism?
 
     def _sendto(self, msg, addr, port):
