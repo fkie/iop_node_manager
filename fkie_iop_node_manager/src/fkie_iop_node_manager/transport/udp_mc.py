@@ -147,10 +147,12 @@ class UDPmcSocket(socket.socket):
                 # Create group_bin for de-register later
                 # Set socket options for multicast specific interface or general
                 if not self.interface_ip:
+                    self.logger.debug('joining IPv4 multicast %s using socket.INADDR_ANY' % self.mgroup)
                     self.group_bin = socket.inet_pton(socket.AF_INET, self.mgroup) + struct.pack('=I', socket.INADDR_ANY)
                     self.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
                                     self.group_bin)
                 else:
+                    self.logger.debug('joining IPv4 multicast %s using %s' % (self.mgroup, self.interface_ip))
                     self.group_bin = socket.inet_aton(self.mgroup) + socket.inet_aton(self.interface_ip)
                     self.setsockopt(socket.IPPROTO_IP,
                                     socket.IP_MULTICAST_IF,
