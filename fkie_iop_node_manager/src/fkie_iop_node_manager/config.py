@@ -351,7 +351,10 @@ class Config:
                     if self._is_writable(value):
                         if isinstance(curr_value, dict):
                             if isinstance(value, dict):
-                                new_cfg[key] = self._apply_recursive(value, curr_value, "%s%s" % (path, key))
+                                if ':value' in curr_value:
+                                    new_cfg[key][':value'] = value
+                                else:
+                                    new_cfg[key] = self._apply_recursive(value, curr_value, "%s%s" % (path, key))
                             elif key not in [':hint', ':default', ':ro', ':min', ':max', ':alt']:
                                 new_cfg[key][':value'] = value
                         elif isinstance(curr_value, dict):
