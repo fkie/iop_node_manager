@@ -130,8 +130,9 @@ class UDPucSocket(socket.socket):
             if msg is not None:
                 dst = msg.tinfo_dst
                 if self._default_dst is not None:
-                    # it is a loopback socket, send to fictive debug destination
-                    dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP, self._default_dst[0], self._default_dst[1])
+                    if dst is None:
+                        # it is a loopback socket, send to fictive debug destination
+                        dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP, self._default_dst[0], self._default_dst[1])
                 if dst is not None:
                     # send to given addresses
                     self._sendto(msg.bytes(), dst.address, dst.port)
@@ -139,6 +140,9 @@ class UDPucSocket(socket.socket):
                     # send to local clients through UDP connections
                     for local_dst in self._addrbook.get_local_udp_destinations():
                         self._sendto(msg, local_dst.address, local_dst.port)
+                    # send to all addresses defined in the configuration of the address book
+                    for entry in self._addrbook.get_static_udp_entries(msg):
+                        self._sendto(msg, entry)
             # TODO: add retry mechanism?
 
     def _sendto(self, msg, addr, port):
