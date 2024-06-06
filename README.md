@@ -6,7 +6,7 @@
 
 The communication between the IOP components occurs via a Node Manager. The Node Manager performs like a router, detects local and remote components and routes the messages to the right destination. In an IOP system one Node Manager should run on each host.
 
-This Node Manager is written in Python and can be used as ROS package or as standalone component as well. It is a part of the [ROS/IOP Bridge](ros_iop_bridge).
+This Node Manager is written in Python and can be used as ROS package or as standalone component as well. It is a part of the [ROS/IOP Bridge][ros_iop_bridge].
 
 ## Design
 
