@@ -1,6 +1,6 @@
 # IOP Node Manager
 
-[![Build Status](https://travis-ci.org/fkie/iop_node_manager.svg?branch=master)](https://travis-ci.org/fkie/iop_node_manager)
+[![jazzy](https://github.com/fkie/iop_node_manager/actions/workflows/main.yml/badge.svg)](https://github.com/fkie/iop_node_manager/actions/workflows/main.yml)
 
 ## Summary
 
