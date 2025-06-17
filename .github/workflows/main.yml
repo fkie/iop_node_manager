@@ -1,4 +1,4 @@
-name: CI
+name: jazzy
 
 on: [push, pull_request]
 
@@ -7,8 +7,7 @@ jobs:
     strategy:
       matrix:
         env:
-          - {ROS_DISTRO: foxy}
-          - {ROS_DISTRO: galactic}
+          - {ROS_DISTRO: jazzy}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
