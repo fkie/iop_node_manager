@@ -1,6 +1,6 @@
 # IOP Node Manager
 
-[![Build Status](https://travis-ci.org/fkie/iop_node_manager.svg?branch=master)](https://travis-ci.org/fkie/iop_node_manager)
+[![noetic](https://github.com/fkie/iop_node_manager/actions/workflows/main.yaml/badge.svg)](https://github.com/fkie/iop_node_manager/actions/workflows/main.yaml)
 
 ## Summary
 
@@ -88,4 +88,4 @@ Currently communication over TCP is experimental and Serial is under development
 
 [jrmiddleware]: https://github.com/jaustoolset/jrmiddleware
 [yaml]: https://yaml.org
-[ros_iop_bridge]: https://github.com/fkie/iop_core
+[ros_iop_bridge]: https://github.com/fkie/iop_core/tree/noetic
