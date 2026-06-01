@@ -124,7 +124,7 @@ def main(args=None):
         # start(name, block=False, params=params)
         start(node.get_name(), block=False)
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
         print('stop node manager')
     except Exception as err:
         import traceback
