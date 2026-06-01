@@ -138,7 +138,7 @@ class UDPucSocket(socket.socket):
                     self._sendto(msg.bytes(), dst.address, dst.port)
                 else:
                     # send to local clients through UDP connections
-                    for local_dst in self._addrbook.get_local_udp_destinations():
+                    for local_dst in self._addrbook.get_local_udp_destinations(msg):
                         self._sendto(msg, local_dst.address, local_dst.port)
                     # send to all addresses defined in the configuration of the address book
                     for entry in self._addrbook.get_static_udp_entries(msg):

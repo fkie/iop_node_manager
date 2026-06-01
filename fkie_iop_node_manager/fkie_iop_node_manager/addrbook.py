@@ -187,9 +187,9 @@ class AddressBook:
                 except KeyError as err:
                     self.logger.warning("Can not remove %s: %s" % (jaus_address, err))
 
-    def get_local_udp_destinations(self) -> List[Endpoint]:
+    def get_local_udp_destinations(self, msg) -> List[Endpoint]:
         result = []
-        for _jaus_address, endpoint in self._map.items():
-            if endpoint.etype == AddressBook.Endpoint.UDP_LOCAL:
+        for jaus_address, endpoint in self._map.items():
+            if endpoint.etype == AddressBook.Endpoint.UDP_LOCAL and msg.dst_id.match(jaus_address):
                 result.append(endpoint)
         return result

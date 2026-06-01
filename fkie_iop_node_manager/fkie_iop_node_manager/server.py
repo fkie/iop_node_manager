@@ -138,7 +138,7 @@ class Server():
             if msg.dst_id.has_wildcards():
                 # it is a broadcast message, try send to all matched locals (except sender)
                 self.logger.debug("send 0x%.4X broadcast from %s" % (msg.msg_id, msg.src_id))
-                self._local_mngr.send_queued(msg)
+                # self._local_mngr.send_queued(msg)
                 self.route_local_msg(msg)
                 add_to_statistics = False
                 msg.forward = True

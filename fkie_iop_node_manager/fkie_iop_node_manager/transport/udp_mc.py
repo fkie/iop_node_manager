@@ -195,7 +195,7 @@ class UDPmcSocket(socket.socket):
                     if msg.tinfo_src.etype == AddressBook.Endpoint.UDP_LOCAL:
                         self._sendto(msg, AddressBook.Endpoint(AddressBook.Endpoint.UDP, self.mgroup, self.getsockname()[1]))
                     # send to local clients through UDP connections
-                    for local_dst in self._addrbook.get_local_udp_destinations():
+                    for local_dst in self._addrbook.get_local_udp_destinations(msg):
                         if local_dst != msg.tinfo_src:
                             self._sendto(msg, local_dst)
                     # send to all addresses defined in the configuration of the address book
