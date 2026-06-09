@@ -187,11 +187,19 @@ class UDPucSocket(socket.socket):
                                     resp = Message()
                                     resp.version = Message.AS5669
                                     resp.dst_id = msg.src_id
-                                    resp.cmd_code = Message.CODE_ACCEPT
+                                    if msg.dst_id.subsystem == 0:
+                                        new_subsystem = self._addrbook.get_free_subsystem_id()
+                                        if new_subsystem != 0:
+                                            resp.dst_id.subsystem = new_subsystem
+                                    if msg.dst_id.subsystem == 0:
+                                        resp.cmd_code = Message.CODE_CANCEL
+                                    else:
+                                        resp.cmd_code = Message.CODE_ACCEPT
                                     resp.ts_receive = time.time()
                                     resp.tinfo_src = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, self.mgroup, self.getsockname()[1])
                                     resp.tinfo_dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, address[0], address[1])
-                                    self._addrbook.add_jaus_address(msg.src_id, address=address[0], port=address[1], ep_type=AddressBook.Endpoint.UDP_LOCAL)
+                                    if msg.dst_id.subsystem != 0:
+                                        self._addrbook.add_jaus_address(msg.dst_id, address=address[0], port=address[1], ep_type=AddressBook.Endpoint.UDP_LOCAL)
                                     self.send_queued(resp)
                                 elif msg.cmd_code == Message.CODE_CANCEL:
                                     # Disconnect client.

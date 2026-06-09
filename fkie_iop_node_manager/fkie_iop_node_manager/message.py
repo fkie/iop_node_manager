@@ -58,8 +58,8 @@ class Message(object):
         described in the Maximum Packet Size sections. When Header Compression is used, the Data Size is the size of the
         compressed message. The packet length shall be presented formatted in Little-Endian format.
         '''
-        self.src_id = JausAddress(0)
-        self.dst_id = JausAddress(0)
+        self.src_id: JausAddress = JausAddress(0)
+        self.dst_id: JausAddress = JausAddress(0)
         self._priority = 1
         ''':ivar priority: Low=0, Standard=1, High=2, Safety Critical=3'''
         self._bcast = 0

@@ -148,7 +148,7 @@ class UDSServer(object):
                         if not ok:
                             failed.append(msg.dst_id)
         if not found and self._local_sockets:
-            self.logger.debug("No UDS destination found for: %s, seqnr: %d" % (msg.dst_id, msg.seqnr))
+            self.logger.info("No UDS destination found for: %s, seqnr: %d" % (msg.dst_id, msg.seqnr))
             not_found.append(msg.dst_id)
         return failed, not_found
 
@@ -232,65 +232,6 @@ class UDSServer(object):
             import traceback
             print(traceback.format_exc())
             self.logger.warning("Error while get send item from queue: %s" % e)
-
-    # def send_loopback(self, msg):
-    #     if self._udp_looback is not None:
-    #         self._udp_looback.send_queued(msg)
-
-    # def handle_msg(self, msg):
-    #     try:
-    #         if msg is None:
-    #             return
-    #         if msg.dst_id.zero or msg.cmd_code > 0:
-    #             # handle connection requests/closing
-    #             try:
-    #                 self._statistics.add(msg)
-    #                 if msg.cmd_code == Message.CODE_CONNECT:
-    #                     # Connection request from client.
-    #                     self.logger.debug("Connection request from %s" % msg.src_id)
-    #                     resp = Message()
-    #                     resp.version = Message.AS5669
-    #                     resp.dst_id = msg.src_id
-    #                     resp.cmd_code = Message.CODE_ACCEPT
-    #                     dest_sock = self.create_local_socket(msg.src_id)
-    #                     if dest_sock is not None:
-    #                         dest_sock.send_msg(resp)
-    #                     resp.ts_receive = time.time()
-    #                     resp.tinfo_src = AddressBook.Endpoint(AddressBook.Endpoint.UDS, self._local_socket.socket_path)
-    #                     resp.tinfo_dst = AddressBook.Endpoint(AddressBook.Endpoint.UDS, dest_sock.socket_path)
-    #                     self._statistics.add(resp)
-    #                 elif msg.cmd_code == Message.CODE_CANCEL:
-    #                     # Disconnect client.
-    #                     self.logger.debug("Disconnect request from %s" % msg.src_id)
-    #                     self.remove_local_socket(msg.src_id)
-    #             except Exception as e:
-    #                 print(traceback.format_exc())
-    #                 self.logger.warning("Error while handle connection management message: %s" % e)
-    #         else:
-    #             # all other message put in priority queue
-    #             try:
-    #                 # override priority
-    #                 if self._priority_map:
-    #                     msg_id = int(msg.msg_id)
-    #                     try:
-    #                         if msg_id in self._priority_map:
-    #                             prio = self._priority_map[msg_id]
-    #                             # self.logger.debug("Override priority for msg ID: 0x%x, current: %d, new: %d" % (msg_id, msg.priority, prio))
-    #                             msg.priority = prio
-    #                     except KeyError:
-    #                         pass
-    #                     except Exception as err:
-    #                         import traceback
-    #                         print(traceback.format_exc())
-    #                         self.logger.warning("can not changed priority: %s" % (err))
-    #                 if msg.dst_id not in self._local_sockets:
-    #                     self.create_local_socket(msg.src_id)
-    #             except Exception as e:
-    #                 print(traceback.format_exc())
-    #                 self.logger.warning("Error while put local message to global queue: %s" % e)
-    #     except Exception as e:
-    #         print(traceback.format_exc())
-    #         self.logger.warning("Error while get send item from queue: %s" % e)
 
     def _loop_handle_send_queue(self):
         while not self._stop:

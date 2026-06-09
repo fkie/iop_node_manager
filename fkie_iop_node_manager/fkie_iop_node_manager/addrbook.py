@@ -18,6 +18,7 @@
 #
 # ****************************************************************************
 
+from typing import Dict
 from typing import List
 
 from .jaus_address import JausAddress
@@ -73,7 +74,7 @@ class AddressBook:
         '''
         self.logger = NMLogger('addrbook', loglevel)
         self._default_port = default_port
-        self._map = {}
+        self._map: Dict[JausAddress, AddressBook.Endpoint] = {}
         self._static_tcp_port_map = {}
         self._static_udp = self._read_static_addr(addrbook_udp, AddressBook.Endpoint.UDP)
         self._static_tcp = self._read_static_addr(addrbook_tcp, AddressBook.Endpoint.TCP)
@@ -167,6 +168,18 @@ class AddressBook:
         if not jaus_address.has_wildcards():
             endpoint = AddressBook.Endpoint(ep_type, address, port)
             self._add(jaus_address, endpoint)
+
+    def get_free_subsystem_id(self) -> int:
+        result = 6666
+        while result < 9999:
+            found = False
+            for jaus_address in self._map.keys():
+                if jaus_address.subsystem == result:
+                    found = True
+                    break
+            if not found:
+                return result
+        return 0
 
     def _add(self, jaus_address, endpoint):
         if jaus_address in self._map:
