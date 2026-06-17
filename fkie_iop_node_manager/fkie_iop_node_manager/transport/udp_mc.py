@@ -144,6 +144,8 @@ class UDPmcSocket(socket.socket):
             msg = str(errobj)
             self.logger.critical("Unable to bind multicast to interface: %s, check that it exists: %s" % (self.mgroup, msg))
             raise
+        if self.port == 0:
+            self.port = self.getsockname()[1]
         self._router = router
         self._queue_send = queue.PQueue(queue_length, 'queue_udp_send', loglevel=loglevel)
         self._parser_mcast = MessageParser(None, loglevel=loglevel)
@@ -254,7 +256,7 @@ class UDPmcSocket(socket.socket):
                                     resp.dst_id = msg.src_id
                                     resp.cmd_code = Message.CODE_ACCEPT
                                     resp.ts_receive = time.time()
-                                    resp.tinfo_src = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, self.mgroup, self.getsockname()[1])
+                                    resp.tinfo_src = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, self.mgroup, self.port)
                                     resp.tinfo_dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, address[0], address[1])
                                     self._addrbook.add_jaus_address(msg.src_id, address=address[0], port=address[1], ep_type=AddressBook.Endpoint.UDP_LOCAL)
                                     self.send_queued(resp)

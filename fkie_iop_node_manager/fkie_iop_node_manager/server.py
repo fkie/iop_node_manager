@@ -59,7 +59,7 @@ class Server():
         port = self.cfg.param('transport/udp/port', 3794)
         mgroup = self.cfg.param('transport/udp/group', '239.255.0.1')
         ttl = self.cfg.param('transport/udp/ttl', 16)
-        use_mcast = self.cfg.param('transport/udp/use_mcast', '')
+        use_mcast = self.cfg.param('transport/udp/use_mcast', True)
         interface = self.cfg.param('transport/udp/interface', '')
         buffer_size = self.cfg.param('transport/udp/buffer_size', 0)
         queue_length = self.cfg.param('transport/udp/queue_length', 0)

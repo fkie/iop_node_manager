@@ -83,6 +83,7 @@ class UDPucSocket(socket.socket):
             msg = str(errobj)
             self.logger.critical("Unable to bind unicast to interface: %s, check that it exists: %s" % (bind_ip, msg))
             raise
+        self.sockname = self.getsockname()[0]
         if self.port == 0:
             self.port = self.getsockname()[1]
         if send_buffer:
@@ -135,7 +136,7 @@ class UDPucSocket(socket.socket):
                         dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP, self._default_dst[0], self._default_dst[1])
                 if dst is not None:
                     # send to given addresses
-                    self._sendto(msg.bytes(), dst.address, dst.port)
+                    self._sendto(msg, dst.address, dst.port)
                 else:
                     # send to local clients through UDP connections
                     for local_dst in self._addrbook.get_local_udp_destinations(msg):
@@ -156,7 +157,7 @@ class UDPucSocket(socket.socket):
         '''
         try:
             self.logger.debug("Send to %s:%d" % (addr, port))
-            self.sendto(msg, (addr, port))
+            self.sendto(msg.bytes(), (addr, port))
         except socket.error as errobj:
             msg = str(errobj)
             if errobj.errno in [-5]:
@@ -189,7 +190,7 @@ class UDPucSocket(socket.socket):
                                     resp.dst_id = msg.src_id
                                     resp.cmd_code = Message.CODE_ACCEPT
                                     resp.ts_receive = time.time()
-                                    resp.tinfo_src = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, self.mgroup, self.getsockname()[1])
+                                    resp.tinfo_src = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, self.sockname, self.port)
                                     resp.tinfo_dst = AddressBook.Endpoint(AddressBook.Endpoint.UDP_LOCAL, address[0], address[1])
                                     self._addrbook.add_jaus_address(msg.src_id, address=address[0], port=address[1], ep_type=AddressBook.Endpoint.UDP_LOCAL)
                                     self.send_queued(resp)
