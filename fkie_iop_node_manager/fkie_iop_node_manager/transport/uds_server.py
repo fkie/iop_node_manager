@@ -128,7 +128,7 @@ class UDSServer(object):
         if msg.tinfo_dst is not None:
             # found valid destination entry
             found = True
-            self.logger.debug("Send to local socket %s" % msg.tinfo_dst.address)
+            self.logger.debug("Send 0x%.4X to local socket %s" % (msg.msg_id, msg.tinfo_dst.address))
             if msg.dst_id in self._local_sockets:
                 sock = self._local_sockets[msg.dst_id]
                 ok = sock.send_msg(msg)
@@ -143,7 +143,7 @@ class UDSServer(object):
                 if key != msg.src_id:
                     if key.match(msg.dst_id):
                         found = True
-                        self.logger.debug("forward message to %s" % (key))
+                        self.logger.debug("broadcast 0x%.4X message to %s" % (msg.msg_id, key))
                         ok = sock.send_msg(msg)
                         if not ok:
                             failed.append(msg.dst_id)
